@@ -7,7 +7,11 @@
 
 *注：GUI V2.0.0 完全重写，从 CLI 终端界面升级为跨平台图形界面*
 
-> 🌸 与千年科学学园研讨会会计早濑优香（Hayase Yuuka）在精美 GUI 中聊天
+> 🌸 与千年科学学园研讨会会计早濑优香（Hayase Yuuka）在图形界面中聊天
+
+<div align="center">
+<img src="image.png" alt="yuuka" width="50%">
+</div>
 
 ## ✨ 新特性
 
