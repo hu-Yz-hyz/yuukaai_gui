@@ -122,7 +122,7 @@ yuukaai_cli/
 
 ## 📜 许可证
 
-本项目采用 [GPL-3.0 许可证](LICENSE) 开源。
+本项目采用 [AGPL-3.0 许可证](LICENSE) 开源。
 
 ## 🙏 致谢
 
@@ -152,3 +152,4 @@ yuukaai_cli/
 <p align="center">
   <i>"完美～与计算一致"</i>
 </p>
+
