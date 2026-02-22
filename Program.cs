@@ -56,7 +56,7 @@ namespace yuukaai
     public static class ThemeConfig
     {
         //默认 API Key
-        public const string DefaultApiKey = "sk-1ac18a780d9540efb70119e530152010";
+        public const string DefaultApiKey = "";
         
         private static readonly string ConfigPath = Path.Combine(
             Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), 
@@ -1454,3 +1454,4 @@ namespace yuukaai
                 .UseReactiveUI();
     }
 }
+
