@@ -1,7 +1,7 @@
 # YuukaAI GUI（YuukaAI V2）
 
 [![.NET](https://img.shields.io/badge/.NET-10.0-512BD4?logo=dotnet)](https://dotnet.microsoft.com/)
-[![License](https://img.shields.io/badge/License-GPL%20v3-blue.svg)](LICENSE)
+[![License](https://img.shields.io/badge/License-AGPL%20v3-blue.svg)](LICENSE)
 [![Platform](https://img.shields.io/badge/Platform-Windows%7CLinux%7CmacOS%7CAndroid-blue)](https://github.com/hu-Yz-hyz/yuukaai_gui)
 [![BlueArchive](https://img.shields.io/badge/Blue%20Archive-YUUKA-%235BA3E8?style=flat)](https://bluearchive-cn.com/)
 
@@ -19,7 +19,7 @@
 -  **多级菜单设置** - 分类清晰的设置面板，实时预览效果
 -  **毛玻璃效果** - 可调整的区域透明度，打造个性化界面
 -  **气泡样式自定义** - 用户/AI 气泡颜色、间距、圆角、内边距
--  **三层记忆系统** - 短期记忆、中期摘要、长期向量记忆
+-  **三层记忆系统** - 短期记忆、中期摘要、长期记忆
 -  **跨平台支持** - Windows（Linux、macOS、Android开发中）
 -  **设置自动保存** - 配置自动保存到本地，下次启动自动加载
 
