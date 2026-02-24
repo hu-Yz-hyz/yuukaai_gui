@@ -5,7 +5,7 @@
 [![Platform](https://img.shields.io/badge/Platform-Windows%7CLinux%7CmacOS%7CAndroid-blue)](https://github.com/hu-Yz-hyz/yuukaai_gui)
 [![BlueArchive](https://img.shields.io/badge/Blue%20Archive-YUUKA-%235BA3E8?style=flat)](https://bluearchive-cn.com/)
 
-*注：GUI V2.0.0 完全重写，从 CLI 终端界面升级为跨平台图形界面*
+*注：GUI V2.0.0 完全重写，从 CLI 终端界面升级为图形界面*
 
 > 🌸 与千年科学学园研讨会会计早濑优香（Hayase Yuuka）在图形界面中聊天
 
@@ -20,7 +20,6 @@
 -  **毛玻璃效果** - 可调整的区域透明度，打造个性化界面
 -  **气泡样式自定义** - 用户/AI 气泡颜色、间距、圆角、内边距
 -  **三层记忆系统** - 短期记忆、中期摘要、长期记忆
--  **跨平台支持** - Windows（Linux、macOS、Android开发中）
 -  **设置自动保存** - 配置自动保存到本地，下次启动自动加载
 
 ## 🚀 快速开始
@@ -55,7 +54,6 @@
 
 - [.NET 10.0 SDK](https://dotnet.microsoft.com/download/dotnet/10.0)
 - Windows/Linux/macOS 构建无需额外依赖
-- Android 构建需要安装 [Android SDK](https://developer.android.com/studio)
 
 ### 构建命令
 
@@ -66,8 +64,6 @@ dotnet run
 # 发布 Windows 版本（框架依赖，单文件）
 dotnet publish -f net10.0 -c Release -p:PublishSingleFile=true --self-contained false
 
-# 发布 Android APK（需要 Android SDK）
-dotnet publish -f net10.0-android -c Release
 ```
 
 
@@ -138,17 +134,14 @@ yuukaaigui/
 
 ## 📝 更新日志
 
+### GUI V2.1.2
+-  优化UI
+-  优化深色主题
+-  实验性添加动画功能
+
 ### GUI V2.1.0
 -  优化设定内容
 -  支持长期记忆
-
-### GUI V2.0.0
--  全新 GUI 界面，从 CLI 完全重构
--  支持深色/浅色模式切换
--  20 种主题色可选
--  毛玻璃效果和透明度调整
--  多级菜单设置面板
--  设置自动保存和加载
 
 
 ## 📜 许可证
@@ -161,12 +154,6 @@ yuukaaigui/
 - [Avalonia UI](https://avaloniaui.net/) - 跨平台 .NET UI 框架
 - [DeepSeek](https://deepseek.ai/) - 提供强大的语言模型
 - [阿里云百炼](https://bailian.console.aliyun.com/cn-beijing#/home) - API 服务
-
-## 🛣️ 开发计划
-
-- [x] 长期记忆能力
-- [ ] 更多模型支持
-- [ ] Markdown 渲染
 
 ## 📧 联系方式
 
