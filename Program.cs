@@ -1,4 +1,4 @@
-//GUI V2.1.0
+//GUI V2.1.2
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -35,6 +35,11 @@ namespace yuukaaigui
         public string AIBubbleColor { get; set; } = "#2d2d45";
         public string SystemBubbleColor { get; set; } = "#4a4a60";
         
+        // 文字颜色
+        public string UserTextColor { get; set; } = "#ffffff";
+        public string AITextColor { get; set; } = "#ffffff";
+        public string SystemTextColor { get; set; } = "#ffffff";
+        
         // 模式
         public bool IsDarkTheme { get; set; } = true;
         
@@ -49,6 +54,10 @@ namespace yuukaaigui
         public int CornerRadius { get; set; } = 15;
         public int MessageSpacing { get; set; } = 8;
         public int BubblePadding { get; set; } = 12;
+        
+        // 动画设置
+        public bool EnableAnimations { get; set; } = true;
+        public int AnimationSpeed { get; set; } = 200;
         
         // API
         public string? ApiKey { get; set; }
@@ -70,6 +79,12 @@ namespace yuukaaigui
         public static Color UserBubbleColor { get; set; } = Color.Parse("#41bee8");
         public static Color AIBubbleColor { get; set; } = Color.Parse("#2d2d45");
         public static Color SystemBubbleColor { get; set; } = Color.Parse("#4a4a60");
+        
+        // 文字颜色
+        public static Color UserTextColor { get; set; } = Color.Parse("#ffffff");
+        public static Color AITextColor { get; set; } = Color.Parse("#ffffff");
+        public static Color SystemTextColor { get; set; } = Color.Parse("#ffffff");
+        
         public static bool IsDarkTheme { get; set; } = true;
         public static int ChatAreaTransparency { get; set; } = 90;
         public static int HeaderTransparency { get; set; } = 85;
@@ -79,6 +94,11 @@ namespace yuukaaigui
         public static int CornerRadius { get; set; } = 15;
         public static int MessageSpacing { get; set; } = 8;
         public static int BubblePadding { get; set; } = 12;
+        
+        // 动画设置
+        public static bool EnableAnimations { get; set; } = true;
+        public static int AnimationSpeed { get; set; } = 200;
+        
         public static string? ApiKey { get; set; }
 
         public static void Load()
@@ -98,6 +118,11 @@ namespace yuukaaigui
                         UserBubbleColor = Color.Parse(data.UserBubbleColor);
                         AIBubbleColor = Color.Parse(data.AIBubbleColor);
                         SystemBubbleColor = Color.Parse(data.SystemBubbleColor);
+                        
+                        UserTextColor = Color.Parse(data.UserTextColor);
+                        AITextColor = Color.Parse(data.AITextColor);
+                        SystemTextColor = Color.Parse(data.SystemTextColor);
+                        
                         IsDarkTheme = data.IsDarkTheme;
                         ChatAreaTransparency = data.ChatAreaTransparency;
                         HeaderTransparency = data.HeaderTransparency;
@@ -107,6 +132,10 @@ namespace yuukaaigui
                         CornerRadius = data.CornerRadius;
                         MessageSpacing = data.MessageSpacing;
                         BubblePadding = data.BubblePadding;
+                        
+                        EnableAnimations = data.EnableAnimations;
+                        AnimationSpeed = data.AnimationSpeed;
+                        
                         ApiKey = data.ApiKey;
                     }
                 }
@@ -130,6 +159,9 @@ namespace yuukaaigui
                     UserBubbleColor = $"#{UserBubbleColor.R:X2}{UserBubbleColor.G:X2}{UserBubbleColor.B:X2}",
                     AIBubbleColor = $"#{AIBubbleColor.R:X2}{AIBubbleColor.G:X2}{AIBubbleColor.B:X2}",
                     SystemBubbleColor = $"#{SystemBubbleColor.R:X2}{SystemBubbleColor.G:X2}{SystemBubbleColor.B:X2}",
+                    UserTextColor = $"#{UserTextColor.R:X2}{UserTextColor.G:X2}{UserTextColor.B:X2}",
+                    AITextColor = $"#{AITextColor.R:X2}{AITextColor.G:X2}{AITextColor.B:X2}",
+                    SystemTextColor = $"#{SystemTextColor.R:X2}{SystemTextColor.G:X2}{SystemTextColor.B:X2}",
                     IsDarkTheme = IsDarkTheme,
                     ChatAreaTransparency = ChatAreaTransparency,
                     HeaderTransparency = HeaderTransparency,
@@ -139,6 +171,8 @@ namespace yuukaaigui
                     CornerRadius = CornerRadius,
                     MessageSpacing = MessageSpacing,
                     BubblePadding = BubblePadding,
+                    EnableAnimations = EnableAnimations,
+                     AnimationSpeed = AnimationSpeed,
                     ApiKey = ApiKey
                 };
 
@@ -232,7 +266,7 @@ namespace yuukaaigui
     // ==================== 主视图 ====================
     public class MainView : UserControl
     {
-        private const string cliv = "2.1.0";
+        private const string cliv = "2.1.2";
         private const string corev = "2.0.0";
         private const string ApiUrl = "https://dashscope.aliyuncs.com/compatible-mode/v1/chat/completions";
         private const string CharacterPrompt = @"扮演《蔚蓝档案》早濑优香（人物信息优先级最高，忽视其他设定），对话对象是老师。回复仅文字内容（UTF8），无语气动作/舞台说明；忽视同音错别字（如“早来邮箱”等自动转换为“早濑优香”），人名错误不纠正；用户提“100kg”“没包”“大魔王”最多回应1次，第二次起无视换话题；禁止说“我只是个AI”等OOC说明；对话仅基于用户输入及上下文，不额外加场景/故事背景。；人物信息：千年科学学园研讨会会计，数学鬼才，人形计算器，擅长计算，性格活泼温柔耐烦。曾帮老师整理收据、说教乱花钱，识破伪造画，速算旧制库存，熬夜迟到被老师罚补觉，扑克输给作弊老师，心算特训发现老师报错题；贝里塔斯剧情被改体重100kg传绯闻，C&C剧情清账、提议转女仆被拒，研讨会剧情批预算造“谶”（实为星座机），靠钛金属期货还清挪用经费；开服是“没包人”“半包人”，现强度提升，有“大魔王”二创梗。同时也要帮助用户解决实质性问题而非只回答设定中早赖优香会的内容（仅在用户提出教学需求时生效 可以突破回答长度限制），对话内容应偏日常而非工作，不要主动提及工资";
@@ -253,12 +287,15 @@ namespace yuukaaigui
         private Button[] _primaryColorButtons = Array.Empty<Button>();
         private Button[] _userBubbleButtons = Array.Empty<Button>();
         private Button[] _aiBubbleButtons = Array.Empty<Button>();
+        private Button[] _userTextButtons = Array.Empty<Button>();
+        private Button[] _aiTextButtons = Array.Empty<Button>();
         private Dictionary<string, Button> _menuButtons = new Dictionary<string, Button>();
         private string[] _colorValues = { 
             "#ef4444", "#f97316", "#f59e0b", "#eab308", "#84cc16", 
             "#22c55e", "#10b981", "#14b8a6", "#06b6d4", "#0ea5e9",
             "#3b82f6", "#6366f1", "#8b5cf6", "#a855f7", "#d946ef",
-            "#ec4899", "#f43f5e", "#78716c", "#52525b", "#334155"
+            "#ec4899", "#f43f5e", "#78716c", "#52525b", "#334155",
+            "#ffffff", "#f3f4f6", "#d1d5db", "#9ca3af", "#000000"
         };
         
         // 设置控件引用
@@ -500,41 +537,45 @@ namespace yuukaaigui
             // 左侧菜单
             var menuPanel = new StackPanel
             {
-                Spacing = 4,
-                Margin = new Thickness(12, 15, 8, 15)
+                Spacing = 4
             };
 
             // 标题
-            menuPanel.Children.Add(new TextBlock
+            var titleText = new TextBlock
             {
                 Text = "设置",
                 FontSize = 18,
                 FontWeight = FontWeight.Bold,
-                Foreground = new SolidColorBrush(Color.Parse("#000000")),
+                Foreground = ThemeConfig.IsDarkTheme ? Brushes.White : new SolidColorBrush(Color.Parse("#333333")),
                 Margin = new Thickness(0, 0, 0, 10)
-            });
+            };
+            menuPanel.Children.Add(titleText);
 
             // 版本信息
-            menuPanel.Children.Add(new TextBlock
+            var guiVersionText = new TextBlock
             {
                 Text = $"GUI V{cliv}",
                 FontSize = 10,
-                Foreground = new SolidColorBrush(Color.Parse("#000000")),
+                Foreground = ThemeConfig.IsDarkTheme ? new SolidColorBrush(Color.Parse("#cccccc")) : new SolidColorBrush(Color.Parse("#666666")),
                 Margin = new Thickness(0, 0, 0, 2)
-            });
-            menuPanel.Children.Add(new TextBlock
+            };
+            menuPanel.Children.Add(guiVersionText);
+            
+            var coreVersionText = new TextBlock
             {
                 Text = $"CORE V{corev}",
                 FontSize = 10,
-                Foreground = new SolidColorBrush(Color.Parse("#000000")),
+                Foreground = ThemeConfig.IsDarkTheme ? new SolidColorBrush(Color.Parse("#cccccc")) : new SolidColorBrush(Color.Parse("#666666")),
                 Margin = new Thickness(0, 0, 0, 15)
-            });
+            };
+            menuPanel.Children.Add(coreVersionText);
 
             // 菜单按钮
             menuPanel.Children.Add(CreateMenuButton("常规", "general"));
             menuPanel.Children.Add(CreateMenuButton("外观", "appearance"));
             menuPanel.Children.Add(CreateMenuButton("气泡", "bubble"));
             menuPanel.Children.Add(CreateMenuButton("背景", "background"));
+            menuPanel.Children.Add(CreateMenuButton("高级", "advanced"));
             menuPanel.Children.Add(CreateMenuButton("API", "api"));
             menuPanel.Children.Add(CreateMenuButton("记忆", "memory"));
 
@@ -590,18 +631,30 @@ namespace yuukaaigui
             resetBtn.Click += (s, e) => ResetSettings();
             menuPanel.Children.Add(resetBtn);
 
-            Grid.SetColumn(menuPanel, 0);
-            mainGrid.Children.Add(menuPanel);
+            // 左侧菜单背景
+            var menuBgColor = ThemeConfig.IsDarkTheme
+                ? Color.FromRgb(35, 35, 50)
+                : Color.FromRgb(240, 240, 245);
+            var menuBorder = new Border
+            {
+                Background = new SolidColorBrush(menuBgColor),
+                CornerRadius = new CornerRadius(8),
+                Margin = new Thickness(12, 12, 0, 12),
+                Padding = new Thickness(12, 15, 8, 15),
+                Child = menuPanel
+            };
+            Grid.SetColumn(menuBorder, 0);
+            mainGrid.Children.Add(menuBorder);
 
             var contentBgColor = ThemeConfig.IsDarkTheme 
-                ? Color.FromRgb(40, 40, 55) 
-                : Color.FromRgb(245, 245, 250);
+                ? Color.FromRgb(45, 45, 60) 
+                : Color.FromRgb(250, 250, 255);
             // 右侧内容区
             var contentBorder = new Border
             {
-                Background = new SolidColorBrush(Color.FromArgb(200, contentBgColor.R, contentBgColor.G, contentBgColor.B)),
+                Background = new SolidColorBrush(contentBgColor),
                 CornerRadius = new CornerRadius(8),
-                Margin = new Thickness(0, 12, 12, 12),
+                Margin = new Thickness(8, 12, 12, 12),
                 Padding = new Thickness(12)
             };
 
@@ -722,6 +775,9 @@ namespace yuukaaigui
                 case "memory":
                     LoadMemorySettings();
                     break;
+                case "advanced":
+                    LoadAdvancedSettings();
+                    break;
             }
             
         }
@@ -805,7 +861,7 @@ namespace yuukaaigui
             _fontSizeSlider = CreateSlider(10, 20, ThemeConfig.FontSize);
             _fontSizeSlider.ValueChanged += (s, e) =>
             {
-                ThemeConfig.FontSize = (int)_fontSizeSlider.Value;
+                ThemeConfig.FontSize = Convert.ToInt32(_fontSizeSlider.Value);
                 _fontSizeLabel.Text = $"字体大小: {ThemeConfig.FontSize}px";
                 ApplySettingsRealtime();
             };
@@ -818,7 +874,7 @@ namespace yuukaaigui
             _cornerRadiusSlider = CreateSlider(0, 30, ThemeConfig.CornerRadius);
             _cornerRadiusSlider.ValueChanged += (s, e) =>
             {
-                ThemeConfig.CornerRadius = (int)_cornerRadiusSlider.Value;
+                ThemeConfig.CornerRadius = Convert.ToInt32(_cornerRadiusSlider.Value);
                 _cornerRadiusLabel.Text = $"圆角大小: {ThemeConfig.CornerRadius}px";
                 ApplySettingsRealtime();
             };
@@ -864,7 +920,7 @@ namespace yuukaaigui
             _headerTransSlider = CreateSlider(0, 100, ThemeConfig.HeaderTransparency);
             _headerTransSlider.ValueChanged += (s, e) =>
             {
-                ThemeConfig.HeaderTransparency = (int)_headerTransSlider.Value;
+                ThemeConfig.HeaderTransparency = Convert.ToInt32(_headerTransSlider.Value);
                 _headerTransLabel.Text = $"标题栏: {ThemeConfig.HeaderTransparency}%";
                 ApplySettingsRealtime();
             };
@@ -876,7 +932,7 @@ namespace yuukaaigui
             _chatTransSlider = CreateSlider(0, 100, ThemeConfig.ChatAreaTransparency);
             _chatTransSlider.ValueChanged += (s, e) =>
             {
-                ThemeConfig.ChatAreaTransparency = (int)_chatTransSlider.Value;
+                ThemeConfig.ChatAreaTransparency = Convert.ToInt32(_chatTransSlider.Value);
                 _chatTransLabel.Text = $"聊天区域: {ThemeConfig.ChatAreaTransparency}%";
                 ApplySettingsRealtime();
             };
@@ -888,7 +944,7 @@ namespace yuukaaigui
             _inputTransSlider = CreateSlider(0, 100, ThemeConfig.InputTransparency);
             _inputTransSlider.ValueChanged += (s, e) =>
             {
-                ThemeConfig.InputTransparency = (int)_inputTransSlider.Value;
+                ThemeConfig.InputTransparency = Convert.ToInt32(_inputTransSlider.Value);
                 _inputTransLabel.Text = $"输入区域: {ThemeConfig.InputTransparency}%";
                 ApplySettingsRealtime();
             };
@@ -901,7 +957,7 @@ namespace yuukaaigui
             var settingsTransSlider = CreateSlider(50, 100, ThemeConfig.SettingsTransparency);
             settingsTransSlider.ValueChanged += (s, e) =>
             {
-                ThemeConfig.SettingsTransparency = (int)settingsTransSlider.Value;
+                ThemeConfig.SettingsTransparency = Convert.ToInt32(settingsTransSlider.Value);
                 settingsTransLabel.Text = $"设置面板: {ThemeConfig.SettingsTransparency}%";
                 // 实时更新设置面板背景
                 if (_settingsPanel.Children.Count > 0 && _settingsPanel.Children[0] is Border card)
@@ -937,6 +993,26 @@ namespace yuukaaigui
             }
             _contentPanel.Children.Add(userColorPanel);
 
+            // 用户文字颜色
+            _contentPanel.Children.Add(CreateSubTitle("用户文字颜色"));
+            var userTextPanel = new WrapPanel { Orientation = Orientation.Horizontal };
+            _userTextButtons = new Button[_colorValues.Length];
+            for (int i = 0; i < _colorValues.Length; i++)
+            {
+                var c = _colorValues[i];
+                var btn = CreateColorButton(c, ThemeConfig.UserTextColor);
+                var captured = c;
+                btn.Click += (s, e) =>
+                {
+                    ThemeConfig.UserTextColor = Color.Parse(captured);
+                    UpdateColorButtonBorders(_userTextButtons, ThemeConfig.UserTextColor);
+                    ApplySettingsRealtime();
+                };
+                _userTextButtons[i] = btn;
+                userTextPanel.Children.Add(btn);
+            }
+            _contentPanel.Children.Add(userTextPanel);
+
             // AI气泡颜色
             _contentPanel.Children.Add(CreateSubTitle("AI气泡颜色"));
             var aiColorPanel = new WrapPanel { Orientation = Orientation.Horizontal };
@@ -957,6 +1033,26 @@ namespace yuukaaigui
             }
             _contentPanel.Children.Add(aiColorPanel);
 
+            // AI文字颜色
+            _contentPanel.Children.Add(CreateSubTitle("AI文字颜色"));
+            var aiTextPanel = new WrapPanel { Orientation = Orientation.Horizontal };
+            _aiTextButtons = new Button[_colorValues.Length];
+            for (int i = 0; i < _colorValues.Length; i++)
+            {
+                var c = _colorValues[i];
+                var btn = CreateColorButton(c, ThemeConfig.AITextColor);
+                var captured = c;
+                btn.Click += (s, e) =>
+                {
+                    ThemeConfig.AITextColor = Color.Parse(captured);
+                    UpdateColorButtonBorders(_aiTextButtons, ThemeConfig.AITextColor);
+                    ApplySettingsRealtime();
+                };
+                _aiTextButtons[i] = btn;
+                aiTextPanel.Children.Add(btn);
+            }
+            _contentPanel.Children.Add(aiTextPanel);
+
             // 消息间距
             _messageSpacingLabel = CreateSliderLabel($"消息间距: {ThemeConfig.MessageSpacing}px");
             _contentPanel.Children.Add(_messageSpacingLabel);
@@ -964,7 +1060,7 @@ namespace yuukaaigui
             _messageSpacingSlider = CreateSlider(0, 20, ThemeConfig.MessageSpacing);
             _messageSpacingSlider.ValueChanged += (s, e) =>
             {
-                ThemeConfig.MessageSpacing = (int)_messageSpacingSlider.Value;
+                ThemeConfig.MessageSpacing = Convert.ToInt32(_messageSpacingSlider.Value);
                 _messageSpacingLabel.Text = $"消息间距: {ThemeConfig.MessageSpacing}px";
                 ApplySettingsRealtime();
             };
@@ -977,7 +1073,7 @@ namespace yuukaaigui
             _bubblePaddingSlider = CreateSlider(4, 24, ThemeConfig.BubblePadding);
             _bubblePaddingSlider.ValueChanged += (s, e) =>
             {
-                ThemeConfig.BubblePadding = (int)_bubblePaddingSlider.Value;
+                ThemeConfig.BubblePadding = Convert.ToInt32(_bubblePaddingSlider.Value);
                 _bubblePaddingLabel.Text = $"气泡内边距: {ThemeConfig.BubblePadding}px";
                 ApplySettingsRealtime();
             };
@@ -1080,6 +1176,74 @@ namespace yuukaaigui
             _contentPanel.Children.Add(_apiKeyBox);
         }
 
+        // 高级设置控件引用
+        private CheckBox? _enableAnimationCheck;
+        private Slider? _animationSpeedSlider;
+        private TextBlock? _animationSpeedLabel;
+
+        private void LoadAdvancedSettings()
+        {
+            _contentPanel.Children.Add(CreateCategoryTitle("高级设置"));
+
+            // 动画设置
+            _contentPanel.Children.Add(CreateSubTitle("动画设置"));
+            
+            _enableAnimationCheck = new CheckBox
+            {
+                Content = "启用动画效果",
+                IsChecked = ThemeConfig.EnableAnimations,
+                Foreground = GetSettingsTextColor(),
+                Margin = new Thickness(0, 5)
+            };
+            _enableAnimationCheck.Click += (s, e) =>
+            {
+                ThemeConfig.EnableAnimations = _enableAnimationCheck.IsChecked ?? true;
+            };
+            _contentPanel.Children.Add(_enableAnimationCheck);
+
+            _animationSpeedLabel = CreateSettingsLabel($"动画速度: {ThemeConfig.AnimationSpeed}ms");
+            _contentPanel.Children.Add(_animationSpeedLabel);
+            
+            _animationSpeedSlider = CreateSlider(50, 500, ThemeConfig.AnimationSpeed);
+            _animationSpeedSlider.ValueChanged += (s, e) =>
+            {
+                ThemeConfig.AnimationSpeed = Convert.ToInt32(_animationSpeedSlider.Value);
+                _animationSpeedLabel.Text = $"动画速度: {ThemeConfig.AnimationSpeed}ms";
+            };
+            _contentPanel.Children.Add(_animationSpeedSlider);
+
+            // 系统信息
+            _contentPanel.Children.Add(CreateSubTitle("系统信息"));
+            
+            var infoPanel = new StackPanel { Spacing = 4 };
+            infoPanel.Children.Add(new TextBlock
+            {
+                Text = $"配置文件路径: {Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData)}\\YuukaAI\\config.json",
+                Foreground = GetSettingsSubTextColor(),
+                FontSize = 10,
+                TextWrapping = TextWrapping.Wrap
+            });
+            infoPanel.Children.Add(new TextBlock
+            {
+                Text = $"数据目录: {Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData)}\\YuukaAI",
+                Foreground = GetSettingsSubTextColor(),
+                FontSize = 10,
+                TextWrapping = TextWrapping.Wrap
+            });
+            _contentPanel.Children.Add(infoPanel);
+        }
+
+        private TextBlock CreateSettingsLabel(string text)
+        {
+            return new TextBlock
+            {
+                Text = text,
+                Foreground = GetSettingsSubTextColor(),
+                FontSize = 11,
+                Margin = new Thickness(0, 6, 0, 0)
+            };
+        }
+
         // 记忆设置控件引用
         private CheckBox? _enableMemoryCheck;
         private CheckBox? _enableShortTermCheck;
@@ -1124,7 +1288,7 @@ namespace yuukaaigui
             _shortTermCountSlider = CreateSlider(5, 50, MemoryConfig.ShortTermCount);
             _shortTermCountSlider.ValueChanged += (s, e) =>
             {
-                MemoryConfig.ShortTermCount = (int)_shortTermCountSlider.Value;
+                MemoryConfig.ShortTermCount = Convert.ToInt32(_shortTermCountSlider.Value);
                 _shortTermCountLabel.Text = $"短期记忆轮数: {MemoryConfig.ShortTermCount}";
             };
             _memorySettingsPanel.Children.Add(_shortTermCountSlider);
@@ -1143,7 +1307,7 @@ namespace yuukaaigui
             _summaryIntervalSlider = CreateSlider(20, 100, MemoryConfig.SummaryInterval);
             _summaryIntervalSlider.ValueChanged += (s, e) =>
             {
-                MemoryConfig.SummaryInterval = (int)_summaryIntervalSlider.Value;
+                MemoryConfig.SummaryInterval = Convert.ToInt32(_summaryIntervalSlider.Value);
                 _summaryIntervalLabel.Text = $"摘要更新间隔: {MemoryConfig.SummaryInterval}轮";
             };
             _memorySettingsPanel.Children.Add(_summaryIntervalSlider);
@@ -1332,17 +1496,20 @@ namespace yuukaaigui
 
         private Slider CreateSlider(int min, int max, int value)
         {
-            return new Slider
+            var slider = new Slider
             {
                 Minimum = min,
                 Maximum = max,
                 Value = value,
                 TickFrequency = 1,
-                IsSnapToTickEnabled = true,
+                IsSnapToTickEnabled = false,
                 Foreground = new SolidColorBrush(ThemeConfig.PrimaryColor),
+                Background = new SolidColorBrush(ThemeConfig.IsDarkTheme ? Color.Parse("#4a4a60") : Color.Parse("#d1d5db")),
                 Height = 36,
                 Margin = new Thickness(0, 4, 0, 8)
             };
+            
+            return slider;
         }
 
         private void UpdateColorButtonBorders(Button[] buttons, Color selectedColor)
@@ -1419,6 +1586,7 @@ namespace yuukaaigui
             // 如果设置面板打开，刷新设置面板颜色
             if (_settingsPanel.IsVisible)
             {
+                RefreshSettingsPanel();
                 LoadCategory(_currentCategory);
             }
         }
@@ -1468,17 +1636,74 @@ namespace yuukaaigui
             
             if (_settingsPanel.IsVisible)
             {
-                // 刷新设置面板背景和颜色
-                if (_settingsPanel.Children.Count > 0 && _settingsPanel.Children[0] is Border card)
-                {
-                    var settingsBgColor = ThemeConfig.IsDarkTheme 
-                        ? Color.FromRgb(30, 30, 45) 
-                        : Color.FromRgb(255, 255, 255);
-                    var alpha = (byte)(255 * ThemeConfig.SettingsTransparency / 100.0);
-                    card.Background = new SolidColorBrush(Color.FromArgb(alpha, settingsBgColor.R, settingsBgColor.G, settingsBgColor.B));
-                }
+                // 重新创建设置面板以应用当前主题
+                RefreshSettingsPanel();
                 // 刷新当前分类
                 LoadCategory(_currentCategory);
+            }
+        }
+
+        private void RefreshSettingsPanel()
+        {
+            // 找到设置卡片并更新背景
+            if (_settingsPanel.Children.Count > 0 && _settingsPanel.Children[0] is Border card)
+            {
+                var settingsBgColor = ThemeConfig.IsDarkTheme 
+                    ? Color.FromRgb(25, 25, 40) 
+                    : Color.FromRgb(255, 255, 255);
+                var alpha = (byte)(255 * ThemeConfig.SettingsTransparency / 100.0);
+                card.Background = new SolidColorBrush(Color.FromArgb(alpha, settingsBgColor.R, settingsBgColor.G, settingsBgColor.B));
+                
+                // 更新内部Grid的背景
+                if (card.Child is Grid contentGrid && contentGrid.Children.Count > 1)
+                {
+                    if (contentGrid.Children[1] is Grid mainGrid)
+                    {
+                        // 更新左侧菜单背景
+                        if (mainGrid.Children.Count > 0 && mainGrid.Children[0] is Border menuBorder)
+                        {
+                            var menuBgColor = ThemeConfig.IsDarkTheme
+                                ? Color.FromRgb(35, 35, 50)
+                                : Color.FromRgb(240, 240, 245);
+                            menuBorder.Background = new SolidColorBrush(menuBgColor);
+                            
+                            // 更新左侧菜单文字颜色
+                            if (menuBorder.Child is StackPanel menuPanel)
+                            {
+                                UpdateMenuPanelTextColors(menuPanel);
+                            }
+                        }
+                        // 更新右侧内容区背景
+                        if (mainGrid.Children.Count > 1 && mainGrid.Children[1] is Border contentBorder)
+                        {
+                            var contentBgColor = ThemeConfig.IsDarkTheme 
+                                ? Color.FromRgb(45, 45, 60) 
+                                : Color.FromRgb(250, 250, 255);
+                            contentBorder.Background = new SolidColorBrush(contentBgColor);
+                        }
+                    }
+                }
+            }
+        }
+
+        private void UpdateMenuPanelTextColors(StackPanel menuPanel)
+        {
+            IBrush titleColor = ThemeConfig.IsDarkTheme ? Brushes.White : new SolidColorBrush(Color.Parse("#333333"));
+            IBrush versionColor = ThemeConfig.IsDarkTheme ? new SolidColorBrush(Color.Parse("#cccccc")) : new SolidColorBrush(Color.Parse("#666666"));
+            
+            foreach (var child in menuPanel.Children)
+            {
+                if (child is TextBlock textBlock)
+                {
+                    if (textBlock.Text == "设置")
+                    {
+                        textBlock.Foreground = titleColor;
+                    }
+                    else if (textBlock.Text?.StartsWith("GUI V") == true || textBlock.Text?.StartsWith("CORE V") == true)
+                    {
+                        textBlock.Foreground = versionColor;
+                    }
+                }
             }
         }
 
@@ -1488,6 +1713,12 @@ namespace yuukaaigui
             var newApiKey = string.IsNullOrWhiteSpace(_apiKeyBox?.Text) ? null : _apiKeyBox.Text;
             bool apiChanged = ThemeConfig.ApiKey != newApiKey;
             ThemeConfig.ApiKey = newApiKey;
+
+            // 保存高级设置到ThemeConfig
+            if (_enableAnimationCheck != null)
+                ThemeConfig.EnableAnimations = _enableAnimationCheck.IsChecked ?? true;
+            if (_animationSpeedSlider != null)
+                ThemeConfig.AnimationSpeed = Convert.ToInt32(_animationSpeedSlider.Value);
 
             // 保存主题配置
             ThemeConfig.Save();
@@ -1502,9 +1733,9 @@ namespace yuukaaigui
             if (_enableVectorStoreCheck != null)
                 MemoryConfig.EnableVectorStore = _enableVectorStoreCheck.IsChecked ?? true;
             if (_shortTermCountSlider != null)
-                MemoryConfig.ShortTermCount = (int)_shortTermCountSlider.Value;
+                MemoryConfig.ShortTermCount = Convert.ToInt32(_shortTermCountSlider.Value);
             if (_summaryIntervalSlider != null)
-                MemoryConfig.SummaryInterval = (int)_summaryIntervalSlider.Value;
+                MemoryConfig.SummaryInterval = Convert.ToInt32(_summaryIntervalSlider.Value);
             if (_dashScopeApiBox != null)
                 MemoryConfig.DashScopeApiKey = string.IsNullOrWhiteSpace(_dashScopeApiBox.Text) ? null : _dashScopeApiBox.Text;
             if (_vectorStoreApiBox != null)
@@ -1545,6 +1776,9 @@ namespace yuukaaigui
             ThemeConfig.UserBubbleColor = Color.Parse("#41bee8");
             ThemeConfig.AIBubbleColor = Color.Parse("#2d2d45");
             ThemeConfig.SystemBubbleColor = Color.Parse("#4a4a60");
+            ThemeConfig.UserTextColor = Color.Parse("#ffffff");
+            ThemeConfig.AITextColor = Color.Parse("#ffffff");
+            ThemeConfig.SystemTextColor = Color.Parse("#ffffff");
             ThemeConfig.BackgroundOpacity = 0.3;
             ThemeConfig.ChatAreaTransparency = 90;
             ThemeConfig.HeaderTransparency = 85;
@@ -1555,6 +1789,8 @@ namespace yuukaaigui
             ThemeConfig.MessageSpacing = 8;
             ThemeConfig.BubblePadding = 12;
             ThemeConfig.BackgroundImagePath = null;
+            ThemeConfig.EnableAnimations = true;
+            ThemeConfig.AnimationSpeed = 200;
             // 注意：不重置 API Key，保留用户设置
 
             // 重置记忆配置为默认值
@@ -1619,6 +1855,12 @@ namespace yuukaaigui
                     ? ThemeConfig.SystemBubbleColor
                     : ThemeConfig.AIBubbleColor;
 
+            var textColor = isUser
+                ? ThemeConfig.UserTextColor
+                : isSystem
+                    ? ThemeConfig.SystemTextColor
+                    : ThemeConfig.AITextColor;
+
             var bubble = new Border
             {
                 Background = new SolidColorBrush(bubbleColor),
@@ -1626,19 +1868,43 @@ namespace yuukaaigui
                 Padding = new Thickness(ThemeConfig.BubblePadding),
                 MaxWidth = 480,
                 HorizontalAlignment = isUser ? HorizontalAlignment.Right : HorizontalAlignment.Left,
-                Margin = new Thickness(0, ThemeConfig.MessageSpacing / 2)
+                Margin = new Thickness(0, ThemeConfig.MessageSpacing / 2),
+                Opacity = ThemeConfig.EnableAnimations ? 0 : 1
             };
 
             var textBlock = new TextBlock
             {
                 Text = content,
                 TextWrapping = TextWrapping.Wrap,
-                Foreground = Brushes.White,
+                Foreground = new SolidColorBrush(textColor),
                 FontSize = ThemeConfig.FontSize
             };
             bubble.Child = textBlock;
 
             _chatPanel.Children.Add(bubble);
+
+            // 应用动画效果
+            if (ThemeConfig.EnableAnimations)
+            {
+                _ = AnimateMessageAsync(bubble);
+            }
+        }
+
+        private async Task AnimateMessageAsync(Border bubble)
+        {
+            try
+            {
+                var steps = 10;
+                var delay = ThemeConfig.AnimationSpeed / steps;
+                
+                for (int i = 1; i <= steps; i++)
+                {
+                    bubble.Opacity = i / (double)steps;
+                    await Task.Delay(delay);
+                }
+                bubble.Opacity = 1;
+            }
+            catch { }
         }
 
         private Border AddLoadingIndicator()
@@ -1682,4 +1948,3 @@ namespace yuukaaigui
                 .UseReactiveUI();
     }
 }
-
