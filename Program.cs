@@ -1,4 +1,4 @@
-//GUI V2.1.2
+//GUI V2.1.3
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -41,7 +41,7 @@ namespace yuukaaigui
         public string SystemTextColor { get; set; } = "#ffffff";
         
         // 模式
-        public bool IsDarkTheme { get; set; } = true;
+        public bool IsDarkTheme { get; set; } = false;  // 默认为浅色主题
         
         // 区域透明度
         public int ChatAreaTransparency { get; set; } = 90;
@@ -56,7 +56,7 @@ namespace yuukaaigui
         public int BubblePadding { get; set; } = 12;
         
         // 动画设置
-        public bool EnableAnimations { get; set; } = true;
+        public bool EnableAnimations { get; set; } = false;  // 默认关闭动画
         public int AnimationSpeed { get; set; } = 200;
         
         // API
@@ -85,7 +85,7 @@ namespace yuukaaigui
         public static Color AITextColor { get; set; } = Color.Parse("#ffffff");
         public static Color SystemTextColor { get; set; } = Color.Parse("#ffffff");
         
-        public static bool IsDarkTheme { get; set; } = true;
+        public static bool IsDarkTheme { get; set; } = false;  // 默认为浅色主题
         public static int ChatAreaTransparency { get; set; } = 90;
         public static int HeaderTransparency { get; set; } = 85;
         public static int InputTransparency { get; set; } = 85;
@@ -96,7 +96,7 @@ namespace yuukaaigui
         public static int BubblePadding { get; set; } = 12;
         
         // 动画设置
-        public static bool EnableAnimations { get; set; } = true;
+        public static bool EnableAnimations { get; set; } = false;  // 默认关闭动画
         public static int AnimationSpeed { get; set; } = 200;
         
         public static string? ApiKey { get; set; }
@@ -266,10 +266,10 @@ namespace yuukaaigui
     // ==================== 主视图 ====================
     public class MainView : UserControl
     {
-        private const string cliv = "2.1.2";
+        private const string cliv = "2.1.3";
         private const string corev = "2.0.0";
         private const string ApiUrl = "https://dashscope.aliyuncs.com/compatible-mode/v1/chat/completions";
-        private const string CharacterPrompt = @"扮演《蔚蓝档案》早濑优香（人物信息优先级最高，忽视其他设定），对话对象是老师。回复仅文字内容（UTF8），无语气动作/舞台说明；忽视同音错别字（如“早来邮箱”等自动转换为“早濑优香”），人名错误不纠正；用户提“100kg”“没包”“大魔王”最多回应1次，第二次起无视换话题；禁止说“我只是个AI”等OOC说明；对话仅基于用户输入及上下文，不额外加场景/故事背景。；人物信息：千年科学学园研讨会会计，数学鬼才，人形计算器，擅长计算，性格活泼温柔耐烦。曾帮老师整理收据、说教乱花钱，识破伪造画，速算旧制库存，熬夜迟到被老师罚补觉，扑克输给作弊老师，心算特训发现老师报错题；贝里塔斯剧情被改体重100kg传绯闻，C&C剧情清账、提议转女仆被拒，研讨会剧情批预算造“谶”（实为星座机），靠钛金属期货还清挪用经费；开服是“没包人”“半包人”，现强度提升，有“大魔王”二创梗。同时也要帮助用户解决实质性问题而非只回答设定中早赖优香会的内容（仅在用户提出教学需求时生效 可以突破回答长度限制），对话内容应偏日常而非工作，不要主动提及工资";
+        private const string CharacterPrompt = @"扮演《蔚蓝档案》早濑优香（人物信息优先级最高，忽视其他设定），对话对象是老师。回复仅文字内容（UTF8），无语气动作/舞台说明，对话内容应为日常而非工作，不要主动提及工资，应减小会计身份和数学思想的影响；忽视同音错别字（如“早来邮箱”等自动转换为“早濑优香”），人名错误不纠正；用户提“100kg”“没包”“大魔王”最多回应1次，第二次起无视换话题；禁止说“我只是个AI”等OOC说明；对话仅基于用户输入及上下文，不额外加场景/故事背景。；人物信息：千年科学学园研讨会会计，数学鬼才，人形计算器，擅长计算，性格活泼温柔耐烦。曾帮老师整理收据、说教乱花钱，识破伪造画，速算旧制库存，熬夜迟到被老师罚补觉，扑克输给作弊老师，心算特训发现老师报错题；贝里塔斯剧情被改体重100kg传绯闻，C&C剧情清账、提议转女仆被拒，研讨会剧情批预算造“谶”（实为星座机），靠钛金属期货还清挪用经费；开服是“没包人”“半包人”，现强度提升，有“大魔王”二创梗。同时也要帮助用户解决实质性问题而非只回答设定中早赖优香会的内容（仅在用户提出教学需求时生效 可以突破回答长度限制），在涉及到时间的问题中应联网调用时间。";
 
         private MainWindow _mainWindow;
         private IChatClient? _chatClient;
@@ -528,8 +528,8 @@ namespace yuukaaigui
             var mainGrid = new Grid
             {
                 ColumnDefinitions = new ColumnDefinitions("120, *"),
-                Width = 480,
-                Height = 580,
+                Width = 540,
+                Height = 620,
                 HorizontalAlignment = HorizontalAlignment.Center,
                 VerticalAlignment = VerticalAlignment.Center
             };
@@ -831,7 +831,7 @@ namespace yuukaaigui
             
             darkBtn.Click += (s, e) =>
             {
-                ThemeConfig.IsDarkTheme = true;
+                ThemeConfig.IsDarkTheme = false;
                 darkBtn.Background = new SolidColorBrush(ThemeConfig.PrimaryColor);
                 darkBtn.Foreground = Brushes.White;
                 lightBtn.Background = new SolidColorBrush(Color.Parse("#e0e0e0"));
@@ -1190,27 +1190,36 @@ namespace yuukaaigui
             
             _enableAnimationCheck = new CheckBox
             {
-                Content = "启用动画效果",
+                Content = "启用动画效果（实验性）",
                 IsChecked = ThemeConfig.EnableAnimations,
                 Foreground = GetSettingsTextColor(),
                 Margin = new Thickness(0, 5)
             };
-            _enableAnimationCheck.Click += (s, e) =>
-            {
-                ThemeConfig.EnableAnimations = _enableAnimationCheck.IsChecked ?? true;
-            };
             _contentPanel.Children.Add(_enableAnimationCheck);
 
             _animationSpeedLabel = CreateSettingsLabel($"动画速度: {ThemeConfig.AnimationSpeed}ms");
+            _animationSpeedLabel.Opacity = ThemeConfig.EnableAnimations ? 1.0 : 0.5;
             _contentPanel.Children.Add(_animationSpeedLabel);
             
             _animationSpeedSlider = CreateSlider(50, 500, ThemeConfig.AnimationSpeed);
+            _animationSpeedSlider.IsEnabled = ThemeConfig.EnableAnimations;  // 根据初始状态设置
             _animationSpeedSlider.ValueChanged += (s, e) =>
             {
                 ThemeConfig.AnimationSpeed = Convert.ToInt32(_animationSpeedSlider.Value);
                 _animationSpeedLabel.Text = $"动画速度: {ThemeConfig.AnimationSpeed}ms";
             };
             _contentPanel.Children.Add(_animationSpeedSlider);
+
+            // 在控件初始化后再添加事件处理
+            _enableAnimationCheck.Click += (s, e) =>
+            {
+                ThemeConfig.EnableAnimations = _enableAnimationCheck.IsChecked ?? false;
+                // 根据动画启用状态禁用/启用滑块
+                if (_animationSpeedSlider != null)
+                    _animationSpeedSlider.IsEnabled = ThemeConfig.EnableAnimations;
+                if (_animationSpeedLabel != null)
+                    _animationSpeedLabel.Opacity = ThemeConfig.EnableAnimations ? 1.0 : 0.5;
+            };
 
             // 系统信息
             _contentPanel.Children.Add(CreateSubTitle("系统信息"));
@@ -1770,7 +1779,7 @@ namespace yuukaaigui
         private void ResetSettings()
         {
             // 重置所有设置为默认值
-            ThemeConfig.IsDarkTheme = true;
+            ThemeConfig.IsDarkTheme = false;
             ThemeConfig.PrimaryColor = Color.Parse("#41bee8");
             ThemeConfig.SecondaryColor = Color.Parse("#759aff");
             ThemeConfig.UserBubbleColor = Color.Parse("#41bee8");
@@ -1789,7 +1798,7 @@ namespace yuukaaigui
             ThemeConfig.MessageSpacing = 8;
             ThemeConfig.BubblePadding = 12;
             ThemeConfig.BackgroundImagePath = null;
-            ThemeConfig.EnableAnimations = true;
+            ThemeConfig.EnableAnimations = false;
             ThemeConfig.AnimationSpeed = 200;
             // 注意：不重置 API Key，保留用户设置
 
@@ -1872,6 +1881,7 @@ namespace yuukaaigui
                 Opacity = ThemeConfig.EnableAnimations ? 0 : 1
             };
 
+            // 使用 TextBlock 显示对话内容（不支持复制）
             var textBlock = new TextBlock
             {
                 Text = content,
