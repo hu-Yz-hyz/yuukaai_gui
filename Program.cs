@@ -831,7 +831,7 @@ namespace yuukaaigui
             
             darkBtn.Click += (s, e) =>
             {
-                ThemeConfig.IsDarkTheme = false;
+                ThemeConfig.IsDarkTheme = true;
                 darkBtn.Background = new SolidColorBrush(ThemeConfig.PrimaryColor);
                 darkBtn.Foreground = Brushes.White;
                 lightBtn.Background = new SolidColorBrush(Color.Parse("#e0e0e0"));
