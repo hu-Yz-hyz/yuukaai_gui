@@ -1,4 +1,4 @@
-//core V2.0.0
+//core V2.0.1
 using System;
 using System.Collections.Generic;
 using System.Net.Http;
@@ -102,7 +102,7 @@ namespace yuukaaigui.Core
                 {
                     model = "deepseek-v3.2",
                     messages = messagesToSend,
-                    temperature = 1,
+                    temperature = 0.95,
                     max_tokens = 5120,
                     enable_search = true
                 };
@@ -135,7 +135,7 @@ namespace yuukaaigui.Core
                 }
                 else
                 {
-                    throw new Exception($"API请求失败，可能是过时的版本 也可能是自定义APIKEY错误 当前CORE版本V2.0.0 GUI版本 V2.1.3 : {response.StatusCode} - {responseContent}");
+                    throw new Exception($"API请求失败，可能是过时的版本 也可能是自定义APIKEY错误 当前CORE版本V2.0.1 GUI版本 V2.2.0 : {response.StatusCode} - {responseContent}");
                 }
             }
             catch (Exception)
