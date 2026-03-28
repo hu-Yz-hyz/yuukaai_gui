@@ -1,7 +1,12 @@
 # YuukaAI GUI（YuukaAI V2）
 
+<div align="center">
+<img src="img/logo.png" alt="yuukaai" width="15%">
+</div>
+
 [![.NET](https://img.shields.io/badge/.NET-10.0-512BD4?logo=dotnet)](https://dotnet.microsoft.com/)
 [![License](https://img.shields.io/badge/License-AGPL%20v3-blue.svg)](LICENSE)
+[![CORE License](https://img.shields.io/badge/CORE%20License-MIT%20-blue.svg)](LICENSE)
 [![Platform](https://img.shields.io/badge/Platform-Windows%7CLinux%7CmacOS%7CAndroid-blue)](https://github.com/hu-Yz-hyz/yuukaai_gui)
 [![BlueArchive](https://img.shields.io/badge/Blue%20Archive-YUUKA-%235BA3E8?style=flat)](https://bluearchive-cn.com/)
 
@@ -10,7 +15,7 @@
 > 🌸 与千年科学学园研讨会会计早濑优香（Hayase Yuuka）在图形界面中聊天
 
 <div align="center">
-<img src="img/a.png" alt="yuuka" width="50%"><img src="img/b.png" alt="yuuka" width="50%">
+<img src="img/a.png" alt="yuuka" width="30%"><img src="img/b.png" alt="yuuka" width="30%"><img src="img/C.png" alt="yuuka" width="30%">
 </div>
 
 ## ✨ 新特性
@@ -136,6 +141,11 @@ yuukaaigui/
 
 ## 📝 更新日志
 
+### GUI V2.2.5
+-  调整图标
+-  增加检查更新功能
+-  注：此版本支持跨平台但需自行构建
+
 ### GUI V2.2.0
 -  优化设定内容
 -  调整模型参数
@@ -157,7 +167,9 @@ yuukaaigui/
 
 ## 📜 许可证
 
-本项目采用 [AGPL-3.0 许可证](LICENSE) 开源。
+本项目框架（2.2.0及之前版本）及提示词（全版本）采用 [AGPL-3.0 许可证](LICENSE) 开源。
+
+本项目框架（2.2.0之后版本）采用 [MIT 许可证](MIT.txt) 开源。
 
 ## 🙏 致谢
 
