@@ -15,7 +15,7 @@
 > 🌸 与千年科学学园研讨会会计早濑优香（Hayase Yuuka）在图形界面中聊天
 
 <div align="center">
-<img src="img/a.png" alt="yuuka" width="30%"><img src="img/b.png" alt="yuuka" width="30%"><img src="img/C.png" alt="yuuka" width="30%">
+<img src="img/a.png" alt="yuuka" width="30%"><img src="img/b.png" alt="yuuka" width="30%"><img src="img/c.png" alt="yuuka" width="30%">
 </div>
 
 ## ✨ 新特性
