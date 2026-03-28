@@ -10,8 +10,6 @@
 [![Platform](https://img.shields.io/badge/Platform-Windows%7CLinux%7CmacOS%7CAndroid-blue)](https://github.com/hu-Yz-hyz/yuukaai_gui)
 [![BlueArchive](https://img.shields.io/badge/Blue%20Archive-YUUKA-%235BA3E8?style=flat)](https://bluearchive-cn.com/)
 
-*注：GUI V2.0.0 完全重写，从 CLI 终端界面升级为图形界面*
-
 > 🌸 与千年科学学园研讨会会计早濑优香（Hayase Yuuka）在图形界面中聊天
 
 <div align="center">
