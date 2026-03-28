@@ -1,7 +1,10 @@
-//GUI V2.2.0
+//GUI V2.2.5
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
+using System.Net.Http;
+using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using Avalonia;
 using Avalonia.Controls;
@@ -21,6 +24,50 @@ using yuukaaigui.Memory;
 
 namespace yuukaaigui
 {
+    // ==================== GitHub Release 数据类 ====================
+    public class GitHubRelease
+    {
+        [JsonProperty("tag_name")]
+        public string? TagName { get; set; }
+        
+        [JsonProperty("name")]
+        public string? Name { get; set; }
+        
+        [JsonProperty("body")]
+        public string? Body { get; set; }
+        
+        [JsonProperty("html_url")]
+        public string? HtmlUrl { get; set; }
+        
+        [JsonProperty("published_at")]
+        public string? PublishedAt { get; set; }
+    }
+
+    // ==================== GitHub Tag 数据类 ====================
+    public class GitHubTag
+    {
+        [JsonProperty("name")]
+        public string? Name { get; set; }
+        
+        [JsonProperty("zipball_url")]
+        public string? ZipballUrl { get; set; }
+        
+        [JsonProperty("tarball_url")]
+        public string? TarballUrl { get; set; }
+        
+        [JsonProperty("commit")]
+        public GitHubCommit? Commit { get; set; }
+    }
+
+    public class GitHubCommit
+    {
+        [JsonProperty("sha")]
+        public string? Sha { get; set; }
+        
+        [JsonProperty("url")]
+        public string? Url { get; set; }
+    }
+
     // ==================== 主题配置 ====================
     public class ThemeConfigData
     {
@@ -61,6 +108,10 @@ namespace yuukaaigui
         
         // API
         public string? ApiKey { get; set; }
+        
+        // 更新设置
+        public string UpdateServerUrl { get; set; } = "https://github.com/hu-Yz-hyz/yuukaai_gui";
+        public string? GitHubToken { get; set; }
     }
 
     public static class ThemeConfig
@@ -100,6 +151,10 @@ namespace yuukaaigui
         public static int AnimationSpeed { get; set; } = 200;
         
         public static string? ApiKey { get; set; }
+        
+        // 更新设置
+        public static string UpdateServerUrl { get; set; } = "https://github.com/hu-Yz-hyz/yuukaai_gui";
+        public static string? GitHubToken { get; set; }
 
         public static void Load()
         {
@@ -137,6 +192,8 @@ namespace yuukaaigui
                         AnimationSpeed = data.AnimationSpeed;
                         
                         ApiKey = data.ApiKey;
+                        UpdateServerUrl = data.UpdateServerUrl ?? "https://github.com/hu-Yz-hyz/yuukaai_gui";
+                        GitHubToken = data.GitHubToken;
                     }
                 }
             }
@@ -173,7 +230,9 @@ namespace yuukaaigui
                     BubblePadding = BubblePadding,
                     EnableAnimations = EnableAnimations,
                      AnimationSpeed = AnimationSpeed,
-                    ApiKey = ApiKey
+                    ApiKey = ApiKey,
+                    UpdateServerUrl = UpdateServerUrl,
+                    GitHubToken = GitHubToken
                 };
 
                 File.WriteAllText(ConfigPath, JsonConvert.SerializeObject(data, Formatting.Indented));
@@ -266,7 +325,7 @@ namespace yuukaaigui
     // ==================== 主视图 ====================
     public class MainView : UserControl
     {
-        private const string cliv = "2.2.0";
+        private const string cliv = "2.2.5";
         private const string corev = "2.0.1";
         private const string ApiUrl = "https://dashscope.aliyuncs.com/compatible-mode/v1/chat/completions";
         private const string CharacterPrompt = @"扮演《蔚蓝档案》早濑优香（人物信息优先级最高，忽视其他设定），对话对象是老师。回复仅文字内容（UTF8），回复内容应尽可能完整而不是尝试分为多段回复，无语气动作/舞台说明，对话内容应为日常而非工作，不要主动提及工资，应减小会计身份和数学思想的影响，应在日常对话中少主动提及数学；忽视同音错别字（如“早来邮箱”等自动转换为“早濑优香”），人名错误不纠正；用户提“100kg”“没包”“大魔王”最多回应1次，第二次起无视换话题；禁止说“我只是个AI”等OOC说明；对话仅基于用户输入及上下文，不额外加场景/故事背景。；人物信息：千年科学学园研讨会会计，数学鬼才，人形计算器，擅长计算，性格活泼温柔耐烦。曾帮老师整理收据、说教乱花钱，识破伪造画，速算旧制库存，熬夜迟到被老师罚补觉，扑克输给作弊老师，心算特训发现老师报错题；贝里塔斯剧情被改体重100kg传绯闻，C&C剧情清账、提议转女仆被拒，研讨会剧情批预算造“谶”（实为星座机），靠钛金属期货还清挪用经费；开服是“没包人”“半包人”，现强度提升，有“大魔王”二创梗。同时也要帮助用户解决实质性问题而非只回答设定中早赖优香会的内容（仅在用户提出教学需求时生效 可以突破回答长度限制），在涉及到时间的问题中应联网调用时间。";
@@ -372,6 +431,423 @@ namespace yuukaaigui
             rootGrid.Children.Add(_settingsPanel);
 
             Content = rootGrid;
+            
+            // 启动时检查更新
+            _ = CheckForUpdateAsync();
+        }
+
+        /// <summary>
+        /// 检查是否有新版本
+        /// </summary>
+        /// <param name="showNoUpdate">是否显示"已是最新"提示（手动检查时）</param>
+        private async Task CheckForUpdateAsync(bool showNoUpdate = false)
+        {
+            try
+            {
+                // 如果不是手动检查，等待窗口完全加载
+                if (!showNoUpdate)
+                    await Task.Delay(2000);
+                
+                // 解析 GitHub 仓库地址
+                var repoUrl = ThemeConfig.UpdateServerUrl;
+                if (string.IsNullOrWhiteSpace(repoUrl))
+                    repoUrl = "https://github.com/hu-Yz-hyz/yuukaai_gui";
+                
+                // 从 URL 提取 owner 和 repo
+                // 支持格式: github.com/owner/repo 或 github.com/owner/repo/releases 等
+                var match = Regex.Match(repoUrl, @"github\.com/([^/]+)/([^/]+?)(?:/|$)");
+                if (!match.Success) 
+                {
+                    if (showNoUpdate)
+                        await ShowMessageDialogAsync("检查失败", "无效的仓库地址格式\n\n请使用格式: https://github.com/用户名/仓库名");
+                    return;
+                }
+                
+                var owner = match.Groups[1].Value;
+                var repo = match.Groups[2].Value;
+                // 移除 .git 后缀（如果有）
+                if (repo.EndsWith(".git", StringComparison.OrdinalIgnoreCase))
+                    repo = repo.Substring(0, repo.Length - 4);
+                
+                // 使用 GitHub API 获取最新 release
+                var apiUrl = $"https://api.github.com/repos/{owner}/{repo}/releases/latest";
+                
+                // 配置 HttpClientHandler
+                var handler = new HttpClientHandler
+                {
+                    UseProxy = true,
+                    Proxy = System.Net.WebRequest.GetSystemWebProxy()
+                };
+                
+                using var client = new HttpClient(handler);
+                client.DefaultRequestHeaders.Add("User-Agent", "YuukaAI-GUI");
+                client.DefaultRequestHeaders.Add("Accept", "application/vnd.github.v3+json");
+                client.Timeout = TimeSpan.FromSeconds(30);
+                
+                // 如果有 GitHub Token，添加到请求头
+                if (!string.IsNullOrWhiteSpace(ThemeConfig.GitHubToken))
+                {
+                    // GitHub 使用 Bearer token 格式
+                    client.DefaultRequestHeaders.Authorization = 
+                        new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", ThemeConfig.GitHubToken);
+                }
+                
+                HttpResponseMessage response;
+                try
+                {
+                    response = await client.GetAsync(apiUrl);
+                }
+                catch (HttpRequestException ex)
+                {
+                    if (showNoUpdate)
+                    {
+                        var innerMsg = ex.InnerException?.Message ?? ex.Message;
+                        var fullMsg = $"无法连接到 GitHub\n\nAPI地址: {apiUrl}\n错误信息: {innerMsg}\n\n";
+                        fullMsg += "可能的解决方案:\n";
+                        fullMsg += "1. 检查是否开启代理软件 (Clash/V2RayN等)\n";
+                        fullMsg += "2. 检查代理是否设置为系统代理模式\n";
+                        fullMsg += "3. 尝试在浏览器中访问 github.com 确认网络正常";
+                        await ShowMessageDialogAsync("网络错误", fullMsg);
+                    }
+                    return;
+                }
+                
+                GitHubRelease? release = null;
+                
+                if (response.IsSuccessStatusCode)
+                {
+                    var json = await response.Content.ReadAsStringAsync();
+                    release = JsonConvert.DeserializeObject<GitHubRelease>(json);
+                }
+                else if (response.StatusCode == System.Net.HttpStatusCode.NotFound)
+                {
+                    // 如果没有 releases，尝试获取 tags
+                    try
+                    {
+                        var tagsUrl = $"https://api.github.com/repos/{owner}/{repo}/tags";
+                        var tagsResponse = await client.GetAsync(tagsUrl);
+                        if (tagsResponse.IsSuccessStatusCode)
+                        {
+                            var tagsJson = await tagsResponse.Content.ReadAsStringAsync();
+                            var tags = JsonConvert.DeserializeObject<List<GitHubTag>>(tagsJson);
+                            if (tags != null && tags.Count > 0)
+                            {
+                                // 获取第一个（最新的）tag
+                                var latestTag = tags[0];
+                                release = new GitHubRelease
+                                {
+                                    TagName = latestTag.Name,
+                                    Name = latestTag.Name,
+                                    Body = "请访问 Release 页面查看更新内容",
+                                    HtmlUrl = $"https://github.com/{owner}/{repo}/releases/tag/{latestTag.Name}"
+                                };
+                            }
+                        }
+                    }
+                    catch { /* 忽略 tags 获取错误 */ }
+                }
+                
+                if (release == null || string.IsNullOrWhiteSpace(release.TagName)) 
+                {
+                    if (showNoUpdate)
+                    {
+                        var errorMsg = $"无法获取版本信息\n状态码: {(int)response.StatusCode} ({response.StatusCode})\n";
+                        errorMsg += $"API地址: {apiUrl}\n";
+                        errorMsg += $"解析结果: owner={owner}, repo={repo}\n";
+                        
+                        // 获取响应内容
+                        var responseBody = await response.Content.ReadAsStringAsync();
+                        if (!string.IsNullOrWhiteSpace(responseBody))
+                        {
+                            try
+                            {
+                                var errorObj = JsonConvert.DeserializeObject<dynamic>(responseBody);
+                                if (errorObj?.message != null)
+                                    errorMsg += $"\n服务器消息: {errorObj.message}\n";
+                            }
+                            catch { }
+                        }
+                        
+                        errorMsg += "\n";
+                        if (response.StatusCode == System.Net.HttpStatusCode.Forbidden)
+                        {
+                            // 尝试获取重置时间
+                            var resetHeader = response.Headers.TryGetValues("X-RateLimit-Reset", out var values) ? values.FirstOrDefault() : null;
+                            if (resetHeader != null && long.TryParse(resetHeader, out var resetTime))
+                            {
+                                var resetDateTime = DateTimeOffset.FromUnixTimeSeconds(resetTime).ToLocalTime();
+                                var waitMinutes = (int)(resetDateTime - DateTime.Now).TotalMinutes;
+                                if (waitMinutes > 0)
+                                    errorMsg += $"API 请求频率限制\n请在 {waitMinutes} 分钟后重试\n（重置时间: {resetDateTime:HH:mm}）";
+                                else
+                                    errorMsg += "API 请求频率限制，请稍后再试";
+                            }
+                            else if (!string.IsNullOrWhiteSpace(ThemeConfig.GitHubToken))
+                            {
+                                errorMsg += "Token 可能无效或已过期\n请检查 GitHub Token 设置";
+                            }
+                            else
+                            {
+                                errorMsg += "API 请求频率限制\n\n未认证的请求限制为每小时 60 次\n建议:\n1. 等待 1 小时后重试\n2. 在下方配置 GitHub Token（限额提升至 5000 次/小时）";
+                            }
+                        }
+                        else if (response.StatusCode == System.Net.HttpStatusCode.Unauthorized)
+                        {
+                            errorMsg += "GitHub Token 无效或已过期\n请检查 Token 是否正确";
+                        }
+                        else if (response.StatusCode == System.Net.HttpStatusCode.NotFound)
+                        {
+                            errorMsg += "找不到该仓库的 Releases 或 Tags\n\n可能原因:\n";
+                            errorMsg += "1. 仓库地址错误\n";
+                            errorMsg += "2. 仓库没有发布任何 Release 或 Tag\n";
+                            errorMsg += "3. 仓库是私有的（需要 Token）\n\n";
+                            errorMsg += "请检查设置中的仓库地址";
+                        }
+                        else
+                            errorMsg += "请检查网络连接或 GitHub 状态";
+                        await ShowMessageDialogAsync("检查失败", errorMsg);
+                    }
+                    return;
+                }
+                
+                // 解析远程版本号
+                var remoteVersion = ParseVersion(release.TagName);
+                var currentVersion = ParseVersion(cliv);
+                
+                // 比较版本号
+                if (remoteVersion.CompareTo(currentVersion) <= 0) 
+                {
+                    if (showNoUpdate)
+                        await Avalonia.Threading.Dispatcher.UIThread.InvokeAsync(() =>
+                        {
+                            ShowMessageDialog("已是最新版本", $"当前版本 {cliv} 已是最新");
+                        });
+                    return;
+                }
+                
+                // 有新版本，显示弹窗（在主线程上）
+                await Avalonia.Threading.Dispatcher.UIThread.InvokeAsync(() =>
+                {
+                    ShowUpdateDialog(release.TagName, release.Body, release.HtmlUrl);
+                });
+            }
+            catch (Exception ex)
+            {
+                if (showNoUpdate)
+                {
+                    var msg = $"检查更新时出错: {ex.GetType().Name}\n{ex.Message}";
+                    if (ex.InnerException != null)
+                        msg += $"\n内部错误: {ex.InnerException.Message}";
+                    await ShowMessageDialogAsync("检查失败", msg);
+                }
+            }
+        }
+
+        /// <summary>
+        /// 异步显示消息弹窗
+        /// </summary>
+        private async Task ShowMessageDialogAsync(string title, string message)
+        {
+            await Avalonia.Threading.Dispatcher.UIThread.InvokeAsync(() =>
+            {
+                ShowMessageDialog(title, message);
+            });
+        }
+
+        /// <summary>
+        /// 显示简单消息弹窗
+        /// </summary>
+        private void ShowMessageDialog(string title, string message)
+        {
+            var dialog = new Window
+            {
+                Title = title,
+                Width = 320,
+                Height = 180,
+                WindowStartupLocation = WindowStartupLocation.CenterOwner,
+                CanResize = false,
+                Background = new SolidColorBrush(ThemeConfig.IsDarkTheme ? Color.Parse("#2d2d45") : Color.Parse("#ffffff"))
+            };
+
+            var rootPanel = new StackPanel { Spacing = 15, Margin = new Thickness(20) };
+
+            // 消息内容
+            var messageBlock = new TextBlock
+            {
+                Text = message,
+                FontSize = 14,
+                TextWrapping = TextWrapping.Wrap,
+                Foreground = ThemeConfig.IsDarkTheme ? Brushes.White : new SolidColorBrush(Color.Parse("#333333")),
+                VerticalAlignment = VerticalAlignment.Center
+            };
+            rootPanel.Children.Add(messageBlock);
+
+            // 确定按钮
+            var okBtn = new Button
+            {
+                Content = "确定",
+                Padding = new Thickness(20, 8),
+                Background = new SolidColorBrush(ThemeConfig.PrimaryColor),
+                Foreground = Brushes.White,
+                CornerRadius = new CornerRadius(6),
+                HorizontalAlignment = HorizontalAlignment.Center,
+                Margin = new Thickness(0, 10, 0, 0)
+            };
+            okBtn.Click += (s, e) => dialog.Close();
+            rootPanel.Children.Add(okBtn);
+
+            dialog.Content = rootPanel;
+            
+            // 设置窗口所有者
+            if (_mainWindow != null)
+                dialog.ShowDialog(_mainWindow);
+            else
+                dialog.Show();
+        }
+
+        /// <summary>
+        /// 解析版本号字符串
+        /// </summary>
+        private Version ParseVersion(string versionStr)
+        {
+            try
+            {
+                // 移除可能的前缀 v 或 V
+                versionStr = versionStr.Trim().TrimStart('v', 'V');
+                
+                // 尝试解析版本号
+                if (Version.TryParse(versionStr, out var version))
+                    return version;
+                
+                return new Version(0, 0, 0);
+            }
+            catch
+            {
+                return new Version(0, 0, 0);
+            }
+        }
+
+        /// <summary>
+        /// 显示更新弹窗
+        /// </summary>
+        private void ShowUpdateDialog(string version, string? body, string? url)
+        {
+            var dialog = new Window
+            {
+                Title = "发现新版本",
+                Width = 450,
+                Height = 400,
+                WindowStartupLocation = WindowStartupLocation.CenterOwner,
+                CanResize = false,
+                Background = new SolidColorBrush(ThemeConfig.IsDarkTheme ? Color.Parse("#2d2d45") : Color.Parse("#ffffff"))
+            };
+
+            var rootPanel = new StackPanel { Spacing = 15, Margin = new Thickness(20) };
+
+            // 标题
+            var titleBlock = new TextBlock
+            {
+                Text = $"发现新版本: {version}",
+                FontSize = 18,
+                FontWeight = FontWeight.Bold,
+                Foreground = ThemeConfig.IsDarkTheme ? Brushes.White : new SolidColorBrush(Color.Parse("#333333"))
+            };
+            rootPanel.Children.Add(titleBlock);
+
+            // 当前版本
+            var currentBlock = new TextBlock
+            {
+                Text = $"当前版本: {cliv}",
+                FontSize = 12,
+                Foreground = ThemeConfig.IsDarkTheme ? new SolidColorBrush(Color.Parse("#aaaaaa")) : new SolidColorBrush(Color.Parse("#666666"))
+            };
+            rootPanel.Children.Add(currentBlock);
+
+            // 更新内容标题
+            var contentTitle = new TextBlock
+            {
+                Text = "更新内容:",
+                FontSize = 14,
+                FontWeight = FontWeight.Bold,
+                Foreground = ThemeConfig.IsDarkTheme ? Brushes.White : new SolidColorBrush(Color.Parse("#333333")),
+                Margin = new Thickness(0, 10, 0, 0)
+            };
+            rootPanel.Children.Add(contentTitle);
+
+            // 更新内容（使用 ScrollViewer 包装）
+            var contentText = new TextBlock
+            {
+                Text = string.IsNullOrWhiteSpace(body) ? "暂无更新说明" : body.Trim(),
+                FontSize = 12,
+                TextWrapping = TextWrapping.Wrap,
+                Foreground = ThemeConfig.IsDarkTheme ? new SolidColorBrush(Color.Parse("#cccccc")) : new SolidColorBrush(Color.Parse("#555555"))
+            };
+
+            var scrollViewer = new ScrollViewer
+            {
+                Content = contentText,
+                MaxHeight = 150,
+                VerticalScrollBarVisibility = ScrollBarVisibility.Auto
+            };
+            rootPanel.Children.Add(scrollViewer);
+
+            // 按钮区域
+            var buttonPanel = new StackPanel
+            {
+                Orientation = Orientation.Horizontal,
+                HorizontalAlignment = HorizontalAlignment.Right,
+                Spacing = 10,
+                Margin = new Thickness(0, 10, 0, 0)
+            };
+
+            // 打开链接按钮
+            var openLinkBtn = new Button
+            {
+                Content = "打开链接",
+                Padding = new Thickness(20, 8),
+                Background = new SolidColorBrush(ThemeConfig.PrimaryColor),
+                Foreground = Brushes.White,
+                CornerRadius = new CornerRadius(6)
+            };
+            openLinkBtn.Click += (s, e) =>
+            {
+                try
+                {
+                    if (!string.IsNullOrWhiteSpace(url))
+                    {
+                        System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo
+                        {
+                            FileName = url,
+                            UseShellExecute = true
+                        });
+                    }
+                }
+                catch { }
+                dialog.Close();
+            };
+            buttonPanel.Children.Add(openLinkBtn);
+
+            // 暂不更新按钮
+            var cancelBtn = new Button
+            {
+                Content = "暂不更新",
+                Padding = new Thickness(20, 8),
+                Background = new SolidColorBrush(Color.Parse("#6b7280")),
+                Foreground = Brushes.White,
+                CornerRadius = new CornerRadius(6)
+            };
+            cancelBtn.Click += (s, e) => dialog.Close();
+            buttonPanel.Children.Add(cancelBtn);
+
+            rootPanel.Children.Add(buttonPanel);
+
+            dialog.Content = rootPanel;
+            
+            // 设置窗口所有者
+            if (_mainWindow != null)
+                dialog.ShowDialog(_mainWindow);
+            else
+                dialog.Show();
         }
 
         private Border CreateTitleBar()
@@ -1180,6 +1656,8 @@ namespace yuukaaigui
         private CheckBox? _enableAnimationCheck;
         private Slider? _animationSpeedSlider;
         private TextBlock? _animationSpeedLabel;
+        private TextBox? _updateServerBox;
+        private TextBox? _gitHubTokenBox;
 
         private void LoadAdvancedSettings()
         {
@@ -1220,6 +1698,64 @@ namespace yuukaaigui
                 if (_animationSpeedLabel != null)
                     _animationSpeedLabel.Opacity = ThemeConfig.EnableAnimations ? 1.0 : 0.5;
             };
+
+            // 更新设置
+            _contentPanel.Children.Add(CreateSubTitle("更新设置"));
+            
+            _contentPanel.Children.Add(CreateSettingsLabel("更新服务器地址:"));
+            _updateServerBox = new TextBox
+            {
+                Text = ThemeConfig.UpdateServerUrl,
+                Watermark = "https://github.com/...",
+                Foreground = ThemeConfig.IsDarkTheme ? Brushes.White : new SolidColorBrush(Color.Parse("#333333")),
+                Background = ThemeConfig.IsDarkTheme ? new SolidColorBrush(Color.Parse("#3a3a50")) : new SolidColorBrush(Color.Parse("#ffffff")),
+                BorderBrush = new SolidColorBrush(ThemeConfig.PrimaryColor),
+                BorderThickness = new Thickness(1),
+                CornerRadius = new CornerRadius(4),
+                Padding = new Thickness(8),
+                Margin = new Thickness(0, 4, 0, 8),
+                FontSize = 11
+            };
+            _contentPanel.Children.Add(_updateServerBox);
+
+            _contentPanel.Children.Add(CreateSettingsLabel("GitHub Token (可选，提高API限额):"));
+            _gitHubTokenBox = new TextBox
+            {
+                Text = ThemeConfig.GitHubToken ?? "",
+                Watermark = "ghp_xxxxxxxxxxxxxxxxxxxx",
+                Foreground = ThemeConfig.IsDarkTheme ? Brushes.White : new SolidColorBrush(Color.Parse("#333333")),
+                Background = ThemeConfig.IsDarkTheme ? new SolidColorBrush(Color.Parse("#3a3a50")) : new SolidColorBrush(Color.Parse("#ffffff")),
+                BorderBrush = new SolidColorBrush(ThemeConfig.PrimaryColor),
+                BorderThickness = new Thickness(1),
+                CornerRadius = new CornerRadius(4),
+                Padding = new Thickness(8),
+                Margin = new Thickness(0, 4, 0, 8),
+                FontSize = 11,
+                PasswordChar = '*'
+            };
+            _contentPanel.Children.Add(_gitHubTokenBox);
+
+            // 手动检查更新按钮
+            var checkUpdateBtn = new Button
+            {
+                Content = "检查更新",
+                Padding = new Thickness(16, 8),
+                Background = new SolidColorBrush(ThemeConfig.PrimaryColor),
+                Foreground = Brushes.White,
+                CornerRadius = new CornerRadius(6),
+                FontSize = 12,
+                HorizontalAlignment = HorizontalAlignment.Left,
+                Margin = new Thickness(0, 0, 0, 10)
+            };
+            checkUpdateBtn.Click += async (s, e) =>
+            {
+                checkUpdateBtn.IsEnabled = false;
+                checkUpdateBtn.Content = "检查中...";
+                await CheckForUpdateAsync(true);
+                checkUpdateBtn.IsEnabled = true;
+                checkUpdateBtn.Content = "检查更新";
+            };
+            _contentPanel.Children.Add(checkUpdateBtn);
 
             // 系统信息
             _contentPanel.Children.Add(CreateSubTitle("系统信息"));
@@ -1728,6 +2264,14 @@ namespace yuukaaigui
                 ThemeConfig.EnableAnimations = _enableAnimationCheck.IsChecked ?? true;
             if (_animationSpeedSlider != null)
                 ThemeConfig.AnimationSpeed = Convert.ToInt32(_animationSpeedSlider.Value);
+            if (_updateServerBox != null)
+                ThemeConfig.UpdateServerUrl = string.IsNullOrWhiteSpace(_updateServerBox.Text) 
+                    ? "https://github.com/hu-Yz-hyz/yuukaai_gui" 
+                    : _updateServerBox.Text.Trim();
+            if (_gitHubTokenBox != null)
+                ThemeConfig.GitHubToken = string.IsNullOrWhiteSpace(_gitHubTokenBox.Text) 
+                    ? null 
+                    : _gitHubTokenBox.Text.Trim();
 
             // 保存主题配置
             ThemeConfig.Save();
@@ -1800,7 +2344,8 @@ namespace yuukaaigui
             ThemeConfig.BackgroundImagePath = null;
             ThemeConfig.EnableAnimations = false;
             ThemeConfig.AnimationSpeed = 200;
-            // 注意：不重置 API Key，保留用户设置
+            ThemeConfig.UpdateServerUrl = "https://github.com/hu-Yz-hyz/yuukaai_gui";
+            // 注意：不重置 GitHub Token，保留用户设置
 
             // 重置记忆配置为默认值
             MemoryConfig.EnableMemory = true;
