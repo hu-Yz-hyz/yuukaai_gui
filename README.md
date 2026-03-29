@@ -4,7 +4,7 @@
 <img src="img/logo.png" alt="yuukaai" width="15%">
 </div>
 
-[![.NET](https://img.shields.io/badge/.NET-10.0-512BD4?logo=dotnet)](https://dotnet.microsoft.com/)
+[![.NET](https://img.shields.io/badge/10.0-512BD4?logo=dotnet)](https://dotnet.microsoft.com/)
 [![License](https://img.shields.io/badge/License-AGPL%20v3-blue.svg)](LICENSE)
 [![CORE License](https://img.shields.io/badge/CORE%20License-MIT%20-blue.svg)](LICENSE)
 [![Platform](https://img.shields.io/badge/Platform-Windows%7CLinux%7CmacOS%7CAndroid-blue)](https://github.com/hu-Yz-hyz/yuukaai_gui)
