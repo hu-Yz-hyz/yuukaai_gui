@@ -10,6 +10,7 @@
 [![Platform](https://img.shields.io/badge/Platform-Windows%7CLinux%7CmacOS%7CAndroid-blue)](https://github.com/hu-Yz-hyz/yuukaai_gui)
 [![BlueArchive](https://img.shields.io/badge/Blue%20Archive-YUUKA-%235BA3E8?style=flat)](https://bluearchive-cn.com/)
 
+
 > 🌸 与千年科学学园研讨会会计早濑优香（Hayase Yuuka）在图形界面中聊天
 
 <div align="center">
@@ -138,6 +139,12 @@ yuukaaigui/
 - 记忆系统配置（三层记忆架构）
 
 ## 📝 更新日志
+
+### GUI V2.2.6
+-  优化设定内容
+-  优化UI
+-  添加界面模式中系统跟随选项
+-  注：此版本支持跨平台但需自行构建
 
 ### GUI V2.2.5
 -  调整图标
