@@ -1,4 +1,4 @@
-//GUI V2.2.5
+//GUI V2.2.6
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -68,6 +68,14 @@ namespace yuukaaigui
         public string? Url { get; set; }
     }
 
+    // ==================== 主题模式枚举 ====================
+    public enum ThemeMode
+    {
+        System = 0,  // 跟随系统
+        Dark = 1,    // 深色模式
+        Light = 2    // 浅色模式
+    }
+
     // ==================== 主题配置 ====================
     public class ThemeConfigData
     {
@@ -87,8 +95,8 @@ namespace yuukaaigui
         public string AITextColor { get; set; } = "#ffffff";
         public string SystemTextColor { get; set; } = "#ffffff";
         
-        // 模式
-        public bool IsDarkTheme { get; set; } = false;  // 默认为浅色主题
+        // 模式 (0=跟随系统, 1=深色, 2=浅色)
+        public int ThemeMode { get; set; } = 0;  // 默认为跟随系统
         
         // 区域透明度
         public int ChatAreaTransparency { get; set; } = 90;
@@ -136,11 +144,42 @@ namespace yuukaaigui
         public static Color AITextColor { get; set; } = Color.Parse("#ffffff");
         public static Color SystemTextColor { get; set; } = Color.Parse("#ffffff");
         
-        public static bool IsDarkTheme { get; set; } = false;  // 默认为浅色主题
+        public static ThemeMode ThemeMode { get; set; } = ThemeMode.System;  // 默认为跟随系统
         public static int ChatAreaTransparency { get; set; } = 90;
         public static int HeaderTransparency { get; set; } = 85;
         public static int InputTransparency { get; set; } = 85;
         public static int SettingsTransparency { get; set; } = 95;
+
+        // 获取当前实际是否使用深色主题（考虑跟随系统的情况）
+        public static bool IsDarkThemeEffective
+        {
+            get
+            {
+                return ThemeMode switch
+                {
+                    ThemeMode.Dark => true,
+                    ThemeMode.Light => false,
+                    _ => IsSystemDarkTheme()  // System 或其他情况跟随系统
+                };
+            }
+        }
+
+        // 检测系统主题是否为深色
+        private static bool IsSystemDarkTheme()
+        {
+            try
+            {
+                // 使用 Avalonia 的 PlatformSettings 获取系统主题
+                if (Avalonia.Application.Current?.PlatformSettings is {} settings)
+                {
+                    // PlatformThemeVariant.Dark 值为 1
+                    return (int)settings.GetColorValues().ThemeVariant == 1;
+                }
+            }
+            catch { }
+            // 默认返回浅色
+            return false;
+        }
         public static int FontSize { get; set; } = 14;
         public static int CornerRadius { get; set; } = 15;
         public static int MessageSpacing { get; set; } = 8;
@@ -178,7 +217,7 @@ namespace yuukaaigui
                         AITextColor = Color.Parse(data.AITextColor);
                         SystemTextColor = Color.Parse(data.SystemTextColor);
                         
-                        IsDarkTheme = data.IsDarkTheme;
+                        ThemeMode = (ThemeMode)data.ThemeMode;
                         ChatAreaTransparency = data.ChatAreaTransparency;
                         HeaderTransparency = data.HeaderTransparency;
                         InputTransparency = data.InputTransparency;
@@ -219,7 +258,7 @@ namespace yuukaaigui
                     UserTextColor = $"#{UserTextColor.R:X2}{UserTextColor.G:X2}{UserTextColor.B:X2}",
                     AITextColor = $"#{AITextColor.R:X2}{AITextColor.G:X2}{AITextColor.B:X2}",
                     SystemTextColor = $"#{SystemTextColor.R:X2}{SystemTextColor.G:X2}{SystemTextColor.B:X2}",
-                    IsDarkTheme = IsDarkTheme,
+                    ThemeMode = (int)ThemeMode,
                     ChatAreaTransparency = ChatAreaTransparency,
                     HeaderTransparency = HeaderTransparency,
                     InputTransparency = InputTransparency,
@@ -264,7 +303,12 @@ namespace yuukaaigui
         {
             Styles.Clear();
             Styles.Add(new FluentTheme());
-            RequestedThemeVariant = ThemeConfig.IsDarkTheme ? ThemeVariant.Dark : ThemeVariant.Light;
+            RequestedThemeVariant = ThemeConfig.ThemeMode switch
+            {
+                ThemeMode.Dark => ThemeVariant.Dark,
+                ThemeMode.Light => ThemeVariant.Light,
+                _ => ThemeVariant.Default  // System 跟随系统
+            };
         }
     }
 
@@ -313,7 +357,7 @@ namespace yuukaaigui
 
         private IBrush GetDefaultBackground()
         {
-            return new SolidColorBrush(ThemeConfig.IsDarkTheme ? Color.Parse("#1a1a2e") : Color.Parse("#f0f0f5"));
+            return new SolidColorBrush(ThemeConfig.IsDarkThemeEffective ? Color.Parse("#1a1a2e") : Color.Parse("#f0f0f5"));
         }
 
         public void ApplyTheme()
@@ -325,7 +369,7 @@ namespace yuukaaigui
     // ==================== 主视图 ====================
     public class MainView : UserControl
     {
-        private const string cliv = "2.2.5";
+        private const string cliv = "2.2.6";
         private const string corev = "2.0.1";
         private const string ApiUrl = "https://dashscope.aliyuncs.com/compatible-mode/v1/chat/completions";
         private const string CharacterPrompt = @"扮演《蔚蓝档案》早濑优香（人物信息优先级最高，忽视其他设定），对话对象是老师。回复仅文字内容（UTF8），回复内容应尽可能完整而不是尝试分为多段回复，无语气动作/舞台说明，对话内容应为日常而非工作，不要主动提及工资，应减小会计身份和数学思想的影响，应在日常对话中少主动提及数学；忽视同音错别字（如“早来邮箱”等自动转换为“早濑优香”），人名错误不纠正；用户提“100kg”“没包”“大魔王”最多回应1次，第二次起无视换话题；禁止说“我只是个AI”等OOC说明；对话仅基于用户输入及上下文，不额外加场景/故事背景。；人物信息：千年科学学园研讨会会计，数学鬼才，人形计算器，擅长计算，性格活泼温柔耐烦。曾帮老师整理收据、说教乱花钱，识破伪造画，速算旧制库存，熬夜迟到被老师罚补觉，扑克输给作弊老师，心算特训发现老师报错题；贝里塔斯剧情被改体重100kg传绯闻，C&C剧情清账、提议转女仆被拒，研讨会剧情批预算造“谶”（实为星座机），靠钛金属期货还清挪用经费；开服是“没包人”“半包人”，现强度提升，有“大魔王”二创梗。同时也要帮助用户解决实质性问题而非只回答设定中早赖优香会的内容（仅在用户提出教学需求时生效 可以突破回答长度限制），在涉及到时间的问题中应联网调用时间。";
@@ -666,7 +710,7 @@ namespace yuukaaigui
                 Height = 180,
                 WindowStartupLocation = WindowStartupLocation.CenterOwner,
                 CanResize = false,
-                Background = new SolidColorBrush(ThemeConfig.IsDarkTheme ? Color.Parse("#2d2d45") : Color.Parse("#ffffff"))
+                Background = new SolidColorBrush(ThemeConfig.IsDarkThemeEffective ? Color.Parse("#2d2d45") : Color.Parse("#ffffff"))
             };
 
             var rootPanel = new StackPanel { Spacing = 15, Margin = new Thickness(20) };
@@ -677,7 +721,7 @@ namespace yuukaaigui
                 Text = message,
                 FontSize = 14,
                 TextWrapping = TextWrapping.Wrap,
-                Foreground = ThemeConfig.IsDarkTheme ? Brushes.White : new SolidColorBrush(Color.Parse("#333333")),
+                Foreground = ThemeConfig.IsDarkThemeEffective ? Brushes.White : new SolidColorBrush(Color.Parse("#333333")),
                 VerticalAlignment = VerticalAlignment.Center
             };
             rootPanel.Children.Add(messageBlock);
@@ -739,7 +783,7 @@ namespace yuukaaigui
                 Height = 400,
                 WindowStartupLocation = WindowStartupLocation.CenterOwner,
                 CanResize = false,
-                Background = new SolidColorBrush(ThemeConfig.IsDarkTheme ? Color.Parse("#2d2d45") : Color.Parse("#ffffff"))
+                Background = new SolidColorBrush(ThemeConfig.IsDarkThemeEffective ? Color.Parse("#2d2d45") : Color.Parse("#ffffff"))
             };
 
             var rootPanel = new StackPanel { Spacing = 15, Margin = new Thickness(20) };
@@ -750,7 +794,7 @@ namespace yuukaaigui
                 Text = $"发现新版本: {version}",
                 FontSize = 18,
                 FontWeight = FontWeight.Bold,
-                Foreground = ThemeConfig.IsDarkTheme ? Brushes.White : new SolidColorBrush(Color.Parse("#333333"))
+                Foreground = ThemeConfig.IsDarkThemeEffective ? Brushes.White : new SolidColorBrush(Color.Parse("#333333"))
             };
             rootPanel.Children.Add(titleBlock);
 
@@ -759,7 +803,7 @@ namespace yuukaaigui
             {
                 Text = $"当前版本: {cliv}",
                 FontSize = 12,
-                Foreground = ThemeConfig.IsDarkTheme ? new SolidColorBrush(Color.Parse("#aaaaaa")) : new SolidColorBrush(Color.Parse("#666666"))
+                Foreground = ThemeConfig.IsDarkThemeEffective ? new SolidColorBrush(Color.Parse("#aaaaaa")) : new SolidColorBrush(Color.Parse("#666666"))
             };
             rootPanel.Children.Add(currentBlock);
 
@@ -769,7 +813,7 @@ namespace yuukaaigui
                 Text = "更新内容:",
                 FontSize = 14,
                 FontWeight = FontWeight.Bold,
-                Foreground = ThemeConfig.IsDarkTheme ? Brushes.White : new SolidColorBrush(Color.Parse("#333333")),
+                Foreground = ThemeConfig.IsDarkThemeEffective ? Brushes.White : new SolidColorBrush(Color.Parse("#333333")),
                 Margin = new Thickness(0, 10, 0, 0)
             };
             rootPanel.Children.Add(contentTitle);
@@ -780,7 +824,7 @@ namespace yuukaaigui
                 Text = string.IsNullOrWhiteSpace(body) ? "暂无更新说明" : body.Trim(),
                 FontSize = 12,
                 TextWrapping = TextWrapping.Wrap,
-                Foreground = ThemeConfig.IsDarkTheme ? new SolidColorBrush(Color.Parse("#cccccc")) : new SolidColorBrush(Color.Parse("#555555"))
+                Foreground = ThemeConfig.IsDarkThemeEffective ? new SolidColorBrush(Color.Parse("#cccccc")) : new SolidColorBrush(Color.Parse("#555555"))
             };
 
             var scrollViewer = new ScrollViewer
@@ -888,7 +932,7 @@ namespace yuukaaigui
             grid.Children.Add(_settingsButton);
 
             return CreateBorderWithTransparency(grid, ThemeConfig.HeaderTransparency, 
-                ThemeConfig.IsDarkTheme ? Color.Parse("#252540") : Color.Parse("#e0e0f0"));
+                ThemeConfig.IsDarkThemeEffective ? Color.Parse("#252540") : Color.Parse("#e0e0f0"));
         }
 
         private Border CreateChatArea()
@@ -906,7 +950,7 @@ namespace yuukaaigui
             };
 
             return CreateBorderWithTransparency(_scrollViewer, ThemeConfig.ChatAreaTransparency,
-                ThemeConfig.IsDarkTheme ? Color.Parse("#1e1e32") : Color.Parse("#ffffff"));
+                ThemeConfig.IsDarkThemeEffective ? Color.Parse("#1e1e32") : Color.Parse("#ffffff"));
         }
 
         private Grid CreateInputArea()
@@ -918,7 +962,7 @@ namespace yuukaaigui
             };
 
             var transparency = ThemeConfig.InputTransparency / 100.0;
-            var baseColor = ThemeConfig.IsDarkTheme ? Color.Parse("#252540") : Color.Parse("#ffffff");
+            var baseColor = ThemeConfig.IsDarkThemeEffective ? Color.Parse("#252540") : Color.Parse("#ffffff");
             var bgBorder = new Border 
             { 
                 Background = new SolidColorBrush(Color.FromArgb((byte)(255 * transparency), baseColor.R, baseColor.G, baseColor.B)),
@@ -938,8 +982,8 @@ namespace yuukaaigui
                 Watermark = "输入消息...",
                 FontSize = ThemeConfig.FontSize,
                 Padding = new Thickness(12, 8),
-                Background = new SolidColorBrush(ThemeConfig.IsDarkTheme ? Color.Parse("#3a3a50") : Color.Parse("#ffffff")),
-                Foreground = ThemeConfig.IsDarkTheme ? Brushes.White : Brushes.Black,
+                Background = new SolidColorBrush(ThemeConfig.IsDarkThemeEffective ? Color.Parse("#3a3a50") : Color.Parse("#ffffff")),
+                Foreground = ThemeConfig.IsDarkThemeEffective ? Brushes.White : Brushes.Black,
                 CornerRadius = new CornerRadius(20),
                 AcceptsReturn = false,
                 TextWrapping = TextWrapping.NoWrap,
@@ -1022,7 +1066,7 @@ namespace yuukaaigui
                 Text = "设置",
                 FontSize = 18,
                 FontWeight = FontWeight.Bold,
-                Foreground = ThemeConfig.IsDarkTheme ? Brushes.White : new SolidColorBrush(Color.Parse("#333333")),
+                Foreground = ThemeConfig.IsDarkThemeEffective ? Brushes.White : new SolidColorBrush(Color.Parse("#333333")),
                 Margin = new Thickness(0, 0, 0, 10)
             };
             menuPanel.Children.Add(titleText);
@@ -1032,7 +1076,7 @@ namespace yuukaaigui
             {
                 Text = $"GUI V{cliv}",
                 FontSize = 10,
-                Foreground = ThemeConfig.IsDarkTheme ? new SolidColorBrush(Color.Parse("#cccccc")) : new SolidColorBrush(Color.Parse("#666666")),
+                Foreground = ThemeConfig.IsDarkThemeEffective ? new SolidColorBrush(Color.Parse("#cccccc")) : new SolidColorBrush(Color.Parse("#666666")),
                 Margin = new Thickness(0, 0, 0, 2)
             };
             menuPanel.Children.Add(guiVersionText);
@@ -1041,7 +1085,7 @@ namespace yuukaaigui
             {
                 Text = $"CORE V{corev}",
                 FontSize = 10,
-                Foreground = ThemeConfig.IsDarkTheme ? new SolidColorBrush(Color.Parse("#cccccc")) : new SolidColorBrush(Color.Parse("#666666")),
+                Foreground = ThemeConfig.IsDarkThemeEffective ? new SolidColorBrush(Color.Parse("#cccccc")) : new SolidColorBrush(Color.Parse("#666666")),
                 Margin = new Thickness(0, 0, 0, 15)
             };
             menuPanel.Children.Add(coreVersionText);
@@ -1108,7 +1152,7 @@ namespace yuukaaigui
             menuPanel.Children.Add(resetBtn);
 
             // 左侧菜单背景
-            var menuBgColor = ThemeConfig.IsDarkTheme
+            var menuBgColor = ThemeConfig.IsDarkThemeEffective
                 ? Color.FromRgb(35, 35, 50)
                 : Color.FromRgb(240, 240, 245);
             var menuBorder = new Border
@@ -1122,7 +1166,7 @@ namespace yuukaaigui
             Grid.SetColumn(menuBorder, 0);
             mainGrid.Children.Add(menuBorder);
 
-            var contentBgColor = ThemeConfig.IsDarkTheme 
+            var contentBgColor = ThemeConfig.IsDarkThemeEffective 
                 ? Color.FromRgb(45, 45, 60) 
                 : Color.FromRgb(250, 250, 255);
             // 右侧内容区
@@ -1156,7 +1200,7 @@ namespace yuukaaigui
             contentGrid.Children.Add(overlay);
             contentGrid.Children.Add(mainGrid);
 
-            var settingsBgColor = ThemeConfig.IsDarkTheme 
+            var settingsBgColor = ThemeConfig.IsDarkThemeEffective 
                 ? Color.FromRgb(30, 30, 45) 
                 : Color.FromRgb(255, 255, 255);
             var settingsCard = new Border
@@ -1281,14 +1325,26 @@ namespace yuukaaigui
                 HorizontalAlignment = HorizontalAlignment.Left
             };
             
+            var systemBtn = new Button
+            {
+                Content = "跟随系统",
+                Padding = new Thickness(16, 6),
+                Background = ThemeConfig.ThemeMode == ThemeMode.System 
+                    ? new SolidColorBrush(ThemeConfig.PrimaryColor) 
+                    : new SolidColorBrush(Color.Parse("#e0e0e0")),
+                Foreground = ThemeConfig.ThemeMode == ThemeMode.System ? Brushes.White : new SolidColorBrush(Color.Parse("#333333")),
+                CornerRadius = new CornerRadius(6),
+                FontSize = 12
+            };
+
             var darkBtn = new Button
             {
                 Content = "深色",
                 Padding = new Thickness(16, 6),
-                Background = ThemeConfig.IsDarkTheme 
+                Background = ThemeConfig.ThemeMode == ThemeMode.Dark 
                     ? new SolidColorBrush(ThemeConfig.PrimaryColor) 
                     : new SolidColorBrush(Color.Parse("#e0e0e0")),
-                Foreground = ThemeConfig.IsDarkTheme ? Brushes.White : new SolidColorBrush(Color.Parse("#333333")),
+                Foreground = ThemeConfig.ThemeMode == ThemeMode.Dark ? Brushes.White : new SolidColorBrush(Color.Parse("#333333")),
                 CornerRadius = new CornerRadius(6),
                 FontSize = 12
             };
@@ -1297,34 +1353,58 @@ namespace yuukaaigui
             {
                 Content = "浅色",
                 Padding = new Thickness(16, 6),
-                Background = !ThemeConfig.IsDarkTheme 
+                Background = ThemeConfig.ThemeMode == ThemeMode.Light 
                     ? new SolidColorBrush(ThemeConfig.PrimaryColor) 
                     : new SolidColorBrush(Color.Parse("#e0e0e0")),
-                Foreground = !ThemeConfig.IsDarkTheme ? Brushes.White : new SolidColorBrush(Color.Parse("#333333")),
+                Foreground = ThemeConfig.ThemeMode == ThemeMode.Light ? Brushes.White : new SolidColorBrush(Color.Parse("#333333")),
                 CornerRadius = new CornerRadius(6),
                 FontSize = 12
+            };
+
+            void UpdateThemeButtons()
+            {
+                var isSystem = ThemeConfig.ThemeMode == ThemeMode.System;
+                var isDark = ThemeConfig.ThemeMode == ThemeMode.Dark;
+                var isLight = ThemeConfig.ThemeMode == ThemeMode.Light;
+
+                systemBtn.Background = isSystem 
+                    ? new SolidColorBrush(ThemeConfig.PrimaryColor) 
+                    : new SolidColorBrush(Color.Parse("#e0e0e0"));
+                systemBtn.Foreground = isSystem ? Brushes.White : new SolidColorBrush(Color.Parse("#333333"));
+
+                darkBtn.Background = isDark 
+                    ? new SolidColorBrush(ThemeConfig.PrimaryColor) 
+                    : new SolidColorBrush(Color.Parse("#e0e0e0"));
+                darkBtn.Foreground = isDark ? Brushes.White : new SolidColorBrush(Color.Parse("#333333"));
+
+                lightBtn.Background = isLight 
+                    ? new SolidColorBrush(ThemeConfig.PrimaryColor) 
+                    : new SolidColorBrush(Color.Parse("#e0e0e0"));
+                lightBtn.Foreground = isLight ? Brushes.White : new SolidColorBrush(Color.Parse("#333333"));
+            }
+            
+            systemBtn.Click += (s, e) =>
+            {
+                ThemeConfig.ThemeMode = ThemeMode.System;
+                UpdateThemeButtons();
+                ApplySettingsRealtime();
             };
             
             darkBtn.Click += (s, e) =>
             {
-                ThemeConfig.IsDarkTheme = true;
-                darkBtn.Background = new SolidColorBrush(ThemeConfig.PrimaryColor);
-                darkBtn.Foreground = Brushes.White;
-                lightBtn.Background = new SolidColorBrush(Color.Parse("#e0e0e0"));
-                lightBtn.Foreground = new SolidColorBrush(Color.Parse("#333333"));
+                ThemeConfig.ThemeMode = ThemeMode.Dark;
+                UpdateThemeButtons();
                 ApplySettingsRealtime();
             };
             
             lightBtn.Click += (s, e) =>
             {
-                ThemeConfig.IsDarkTheme = false;
-                lightBtn.Background = new SolidColorBrush(ThemeConfig.PrimaryColor);
-                lightBtn.Foreground = Brushes.White;
-                darkBtn.Background = new SolidColorBrush(Color.Parse("#e0e0e0"));
-                darkBtn.Foreground = new SolidColorBrush(Color.Parse("#333333"));
+                ThemeConfig.ThemeMode = ThemeMode.Light;
+                UpdateThemeButtons();
                 ApplySettingsRealtime();
             };
             
+            themeButtons.Children.Add(systemBtn);
             themeButtons.Children.Add(darkBtn);
             themeButtons.Children.Add(lightBtn);
             themePanel.Children.Add(themeButtons);
@@ -1641,10 +1721,10 @@ namespace yuukaaigui
             _apiKeyBox = new TextBox
             {
                 Text = ThemeConfig.ApiKey ?? "",
-                Background = ThemeConfig.IsDarkTheme 
+                Background = ThemeConfig.IsDarkThemeEffective 
                     ? new SolidColorBrush(Color.Parse("#3a3a50")) 
                     : new SolidColorBrush(Color.Parse("#f0f0f5")),
-                Foreground = ThemeConfig.IsDarkTheme ? Brushes.White : new SolidColorBrush(Color.Parse("#333333")),
+                Foreground = ThemeConfig.IsDarkThemeEffective ? Brushes.White : new SolidColorBrush(Color.Parse("#333333")),
                 CornerRadius = new CornerRadius(8),
                 PasswordChar = '*',
                 FontSize = 12
@@ -1707,8 +1787,8 @@ namespace yuukaaigui
             {
                 Text = ThemeConfig.UpdateServerUrl,
                 Watermark = "https://github.com/...",
-                Foreground = ThemeConfig.IsDarkTheme ? Brushes.White : new SolidColorBrush(Color.Parse("#333333")),
-                Background = ThemeConfig.IsDarkTheme ? new SolidColorBrush(Color.Parse("#3a3a50")) : new SolidColorBrush(Color.Parse("#ffffff")),
+                Foreground = ThemeConfig.IsDarkThemeEffective ? Brushes.White : new SolidColorBrush(Color.Parse("#333333")),
+                Background = ThemeConfig.IsDarkThemeEffective ? new SolidColorBrush(Color.Parse("#3a3a50")) : new SolidColorBrush(Color.Parse("#ffffff")),
                 BorderBrush = new SolidColorBrush(ThemeConfig.PrimaryColor),
                 BorderThickness = new Thickness(1),
                 CornerRadius = new CornerRadius(4),
@@ -1723,8 +1803,8 @@ namespace yuukaaigui
             {
                 Text = ThemeConfig.GitHubToken ?? "",
                 Watermark = "ghp_xxxxxxxxxxxxxxxxxxxx",
-                Foreground = ThemeConfig.IsDarkTheme ? Brushes.White : new SolidColorBrush(Color.Parse("#333333")),
-                Background = ThemeConfig.IsDarkTheme ? new SolidColorBrush(Color.Parse("#3a3a50")) : new SolidColorBrush(Color.Parse("#ffffff")),
+                Foreground = ThemeConfig.IsDarkThemeEffective ? Brushes.White : new SolidColorBrush(Color.Parse("#333333")),
+                Background = ThemeConfig.IsDarkThemeEffective ? new SolidColorBrush(Color.Parse("#3a3a50")) : new SolidColorBrush(Color.Parse("#ffffff")),
                 BorderBrush = new SolidColorBrush(ThemeConfig.PrimaryColor),
                 BorderThickness = new Thickness(1),
                 CornerRadius = new CornerRadius(4),
@@ -1877,10 +1957,10 @@ namespace yuukaaigui
             {
                 Text = MemoryConfig.DashScopeApiKey ?? "",
                 Watermark = "留空使用主模型API Key",
-                Background = ThemeConfig.IsDarkTheme
+                Background = ThemeConfig.IsDarkThemeEffective
                     ? new SolidColorBrush(Color.Parse("#3a3a50"))
                     : new SolidColorBrush(Color.Parse("#f0f0f5")),
-                Foreground = ThemeConfig.IsDarkTheme ? Brushes.White : new SolidColorBrush(Color.Parse("#333333")),
+                Foreground = ThemeConfig.IsDarkThemeEffective ? Brushes.White : new SolidColorBrush(Color.Parse("#333333")),
                 CornerRadius = new CornerRadius(8),
                 PasswordChar = '*',
                 FontSize = 12
@@ -1899,10 +1979,10 @@ namespace yuukaaigui
             {
                 Text = MemoryConfig.VectorStoreApiKey ?? "",
                 Watermark = "可选",
-                Background = ThemeConfig.IsDarkTheme
+                Background = ThemeConfig.IsDarkThemeEffective
                     ? new SolidColorBrush(Color.Parse("#3a3a50"))
                     : new SolidColorBrush(Color.Parse("#f0f0f5")),
-                Foreground = ThemeConfig.IsDarkTheme ? Brushes.White : new SolidColorBrush(Color.Parse("#333333")),
+                Foreground = ThemeConfig.IsDarkThemeEffective ? Brushes.White : new SolidColorBrush(Color.Parse("#333333")),
                 CornerRadius = new CornerRadius(8),
                 PasswordChar = '*',
                 FontSize = 12
@@ -1985,10 +2065,10 @@ namespace yuukaaigui
 
         // ==================== 辅助方法 ====================
         private IBrush GetSettingsTextColor() =>
-            ThemeConfig.IsDarkTheme ? Brushes.White : new SolidColorBrush(Color.Parse("#333333"));
+            ThemeConfig.IsDarkThemeEffective ? Brushes.White : new SolidColorBrush(Color.Parse("#333333"));
 
         private IBrush GetSettingsSubTextColor() =>
-            ThemeConfig.IsDarkTheme ? new SolidColorBrush(Color.Parse("#aaaaaa")) : new SolidColorBrush(Color.Parse("#666666"));
+            ThemeConfig.IsDarkThemeEffective ? new SolidColorBrush(Color.Parse("#aaaaaa")) : new SolidColorBrush(Color.Parse("#666666"));
 
         private TextBlock CreateCategoryTitle(string text)
         {
@@ -2049,7 +2129,7 @@ namespace yuukaaigui
                 TickFrequency = 1,
                 IsSnapToTickEnabled = false,
                 Foreground = new SolidColorBrush(ThemeConfig.PrimaryColor),
-                Background = new SolidColorBrush(ThemeConfig.IsDarkTheme ? Color.Parse("#4a4a60") : Color.Parse("#d1d5db")),
+                Background = new SolidColorBrush(ThemeConfig.IsDarkThemeEffective ? Color.Parse("#4a4a60") : Color.Parse("#d1d5db")),
                 Height = 36,
                 Margin = new Thickness(0, 4, 0, 8)
             };
@@ -2076,7 +2156,12 @@ namespace yuukaaigui
             // 应用主题（不重新加载FluentTheme，只更新背景）
             if (Application.Current is App app)
             {
-                app.RequestedThemeVariant = ThemeConfig.IsDarkTheme ? ThemeVariant.Dark : ThemeVariant.Light;
+                app.RequestedThemeVariant = ThemeConfig.ThemeMode switch
+                {
+                    ThemeMode.Dark => ThemeVariant.Dark,
+                    ThemeMode.Light => ThemeVariant.Light,
+                    _ => ThemeVariant.Default  // System 跟随系统
+                };
             }
             _mainWindow.ApplyTheme();
 
@@ -2096,7 +2181,7 @@ namespace yuukaaigui
                 }
             }
             _titleBar.Background = CreateTransparentBrush(
-                ThemeConfig.IsDarkTheme ? Color.Parse("#252540") : Color.Parse("#e0e0f0"),
+                ThemeConfig.IsDarkThemeEffective ? Color.Parse("#252540") : Color.Parse("#e0e0f0"),
                 ThemeConfig.HeaderTransparency);
 
             // 更新设置面板菜单按钮颜色
@@ -2105,7 +2190,7 @@ namespace yuukaaigui
             // 更新聊天区域
             _chatPanel.Spacing = ThemeConfig.MessageSpacing;
             _chatArea.Background = CreateTransparentBrush(
-                ThemeConfig.IsDarkTheme ? Color.Parse("#1e1e32") : Color.Parse("#ffffff"),
+                ThemeConfig.IsDarkThemeEffective ? Color.Parse("#1e1e32") : Color.Parse("#ffffff"),
                 ThemeConfig.ChatAreaTransparency);
             _chatArea.CornerRadius = new CornerRadius(ThemeConfig.CornerRadius);
             _chatArea.Padding = new Thickness(ThemeConfig.BubblePadding);
@@ -2114,7 +2199,7 @@ namespace yuukaaigui
             if (_inputArea.Children.Count > 0 && _inputArea.Children[0] is Border inputBg)
             {
                 inputBg.Background = CreateTransparentBrush(
-                    ThemeConfig.IsDarkTheme ? Color.Parse("#252540") : Color.Parse("#ffffff"),
+                    ThemeConfig.IsDarkThemeEffective ? Color.Parse("#252540") : Color.Parse("#ffffff"),
                     ThemeConfig.InputTransparency);
                 inputBg.CornerRadius = new CornerRadius(ThemeConfig.CornerRadius);
             }
@@ -2122,8 +2207,8 @@ namespace yuukaaigui
 
             // 更新输入框样式
             _inputBox.FontSize = ThemeConfig.FontSize;
-            _inputBox.Background = new SolidColorBrush(ThemeConfig.IsDarkTheme ? Color.Parse("#3a3a50") : Color.Parse("#ffffff"));
-            _inputBox.Foreground = ThemeConfig.IsDarkTheme ? Brushes.White : Brushes.Black;
+            _inputBox.Background = new SolidColorBrush(ThemeConfig.IsDarkThemeEffective ? Color.Parse("#3a3a50") : Color.Parse("#ffffff"));
+            _inputBox.Foreground = ThemeConfig.IsDarkThemeEffective ? Brushes.White : Brushes.Black;
 
             // 刷新设置按钮
             _settingsButton.Background = new SolidColorBrush(ThemeConfig.PrimaryColor);
@@ -2193,7 +2278,7 @@ namespace yuukaaigui
             // 找到设置卡片并更新背景
             if (_settingsPanel.Children.Count > 0 && _settingsPanel.Children[0] is Border card)
             {
-                var settingsBgColor = ThemeConfig.IsDarkTheme 
+                var settingsBgColor = ThemeConfig.IsDarkThemeEffective 
                     ? Color.FromRgb(25, 25, 40) 
                     : Color.FromRgb(255, 255, 255);
                 var alpha = (byte)(255 * ThemeConfig.SettingsTransparency / 100.0);
@@ -2207,7 +2292,7 @@ namespace yuukaaigui
                         // 更新左侧菜单背景
                         if (mainGrid.Children.Count > 0 && mainGrid.Children[0] is Border menuBorder)
                         {
-                            var menuBgColor = ThemeConfig.IsDarkTheme
+                            var menuBgColor = ThemeConfig.IsDarkThemeEffective
                                 ? Color.FromRgb(35, 35, 50)
                                 : Color.FromRgb(240, 240, 245);
                             menuBorder.Background = new SolidColorBrush(menuBgColor);
@@ -2221,7 +2306,7 @@ namespace yuukaaigui
                         // 更新右侧内容区背景
                         if (mainGrid.Children.Count > 1 && mainGrid.Children[1] is Border contentBorder)
                         {
-                            var contentBgColor = ThemeConfig.IsDarkTheme 
+                            var contentBgColor = ThemeConfig.IsDarkThemeEffective 
                                 ? Color.FromRgb(45, 45, 60) 
                                 : Color.FromRgb(250, 250, 255);
                             contentBorder.Background = new SolidColorBrush(contentBgColor);
@@ -2233,8 +2318,8 @@ namespace yuukaaigui
 
         private void UpdateMenuPanelTextColors(StackPanel menuPanel)
         {
-            IBrush titleColor = ThemeConfig.IsDarkTheme ? Brushes.White : new SolidColorBrush(Color.Parse("#333333"));
-            IBrush versionColor = ThemeConfig.IsDarkTheme ? new SolidColorBrush(Color.Parse("#cccccc")) : new SolidColorBrush(Color.Parse("#666666"));
+            IBrush titleColor = ThemeConfig.IsDarkThemeEffective ? Brushes.White : new SolidColorBrush(Color.Parse("#333333"));
+            IBrush versionColor = ThemeConfig.IsDarkThemeEffective ? new SolidColorBrush(Color.Parse("#cccccc")) : new SolidColorBrush(Color.Parse("#666666"));
             
             foreach (var child in menuPanel.Children)
             {
@@ -2323,7 +2408,7 @@ namespace yuukaaigui
         private void ResetSettings()
         {
             // 重置所有设置为默认值
-            ThemeConfig.IsDarkTheme = false;
+            ThemeConfig.ThemeMode = ThemeMode.System;
             ThemeConfig.PrimaryColor = Color.Parse("#41bee8");
             ThemeConfig.SecondaryColor = Color.Parse("#759aff");
             ThemeConfig.UserBubbleColor = Color.Parse("#41bee8");
