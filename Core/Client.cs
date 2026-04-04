@@ -1,4 +1,4 @@
-//core V2.0.1
+//core V2.1.0
 using System;
 using System.Collections.Generic;
 using System.Net.Http;
@@ -23,7 +23,7 @@ namespace yuukaaigui.Core
         private readonly List<Message> _conversationHistory = new List<Message>();
         private readonly HttpClient _httpClient;
         private readonly string _characterPrompt;
-        private readonly MemoryManager? _memoryManager;
+        private MemoryManager? _memoryManager;
         
         public Client(string apiKey, string apiUrl, string characterPrompt)
         {
@@ -39,12 +39,14 @@ namespace yuukaaigui.Core
                 Role = "system", 
                 Content = _characterPrompt 
             });
+        }
 
-            if (MemoryConfig.EnableMemory)
-            {
-                _memoryManager = new MemoryManager();
-                _ = _memoryManager.InitializeAsync();
-            }
+        private async Task EnsureMemoryManagerInitializedAsync()
+        {
+            if (_memoryManager != null || !MemoryConfig.EnableMemory) return;
+            
+            _memoryManager = new MemoryManager();
+            await _memoryManager.InitializeAsync();
         }
 
         public async Task<string> SendMessageAsync(string userInput)
@@ -54,6 +56,8 @@ namespace yuukaaigui.Core
 
             try
             {
+                await EnsureMemoryManagerInitializedAsync();
+                
                 _conversationHistory.Add(new Message { Role = "user", Content = userInput });
 
                 var messagesToSend = new List<Message>();
@@ -135,7 +139,7 @@ namespace yuukaaigui.Core
                 }
                 else
                 {
-                    throw new Exception($"API请求失败，可能是过时的版本 也可能是自定义APIKEY错误 当前CORE版本V2.0.1 GUI版本 V2.2.6 : {response.StatusCode} - {responseContent}");
+                    throw new Exception($"API请求失败，可能是过时的版本 也可能是自定义APIKEY错误 当前CORE版本V2.1.0 GUI版本 V2.2.7 : {response.StatusCode} - {responseContent}");
                 }
             }
             catch (Exception)
