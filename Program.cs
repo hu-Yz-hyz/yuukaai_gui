@@ -1,4 +1,4 @@
-//GUI V2.2.6
+//GUI V2.2.7
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -114,6 +114,9 @@ namespace yuukaaigui
         public bool EnableAnimations { get; set; } = false;  // 默认关闭动画
         public int AnimationSpeed { get; set; } = 200;
         
+        // 标题栏
+        public string TitleText { get; set; } = "Yuuka AI";
+        
         // API
         public string? ApiKey { get; set; }
         
@@ -150,18 +153,30 @@ namespace yuukaaigui
         public static int InputTransparency { get; set; } = 85;
         public static int SettingsTransparency { get; set; } = 95;
 
+        private static bool? _cachedIsDarkThemeEffective;
+
         // 获取当前实际是否使用深色主题（考虑跟随系统的情况）
         public static bool IsDarkThemeEffective
         {
             get
             {
-                return ThemeMode switch
+                if (_cachedIsDarkThemeEffective.HasValue)
+                    return _cachedIsDarkThemeEffective.Value;
+                
+                var result = ThemeMode switch
                 {
                     ThemeMode.Dark => true,
                     ThemeMode.Light => false,
                     _ => IsSystemDarkTheme()  // System 或其他情况跟随系统
                 };
+                _cachedIsDarkThemeEffective = result;
+                return result;
             }
+        }
+
+        public static void InvalidateThemeCache()
+        {
+            _cachedIsDarkThemeEffective = null;
         }
 
         // 检测系统主题是否为深色
@@ -194,6 +209,9 @@ namespace yuukaaigui
         // 更新设置
         public static string UpdateServerUrl { get; set; } = "https://github.com/hu-Yz-hyz/yuukaai_gui";
         public static string? GitHubToken { get; set; }
+        
+        // 标题栏
+        public static string TitleText { get; set; } = "Yuuka AI";
 
         public static void Load()
         {
@@ -229,6 +247,8 @@ namespace yuukaaigui
                         
                         EnableAnimations = data.EnableAnimations;
                         AnimationSpeed = data.AnimationSpeed;
+                        
+                        TitleText = string.IsNullOrWhiteSpace(data.TitleText) ? "Yuuka AI" : data.TitleText;
                         
                         ApiKey = data.ApiKey;
                         UpdateServerUrl = data.UpdateServerUrl ?? "https://github.com/hu-Yz-hyz/yuukaai_gui";
@@ -269,6 +289,7 @@ namespace yuukaaigui
                     BubblePadding = BubblePadding,
                     EnableAnimations = EnableAnimations,
                      AnimationSpeed = AnimationSpeed,
+                    TitleText = string.IsNullOrWhiteSpace(TitleText) ? "Yuuka AI" : TitleText,
                     ApiKey = ApiKey,
                     UpdateServerUrl = UpdateServerUrl,
                     GitHubToken = GitHubToken
@@ -319,11 +340,12 @@ namespace yuukaaigui
         
         public MainWindow()
         {
-            Title = "Yuuka AI";
+            Title = ThemeConfig.TitleText;
             Width = 900;
             Height = 700;
             MinWidth = 400;
             MinHeight = 500;
+            WindowStartupLocation = WindowStartupLocation.CenterScreen;
             
             MainViewInstance = new MainView(this);
             Content = MainViewInstance;
@@ -369,8 +391,8 @@ namespace yuukaaigui
     // ==================== 主视图 ====================
     public class MainView : UserControl
     {
-        private const string cliv = "2.2.6";
-        private const string corev = "2.0.1";
+        private const string cliv = "2.2.7";
+        private const string corev = "2.1.0";
         private const string ApiUrl = "https://dashscope.aliyuncs.com/compatible-mode/v1/chat/completions";
         private const string CharacterPrompt = @"扮演《蔚蓝档案》早濑优香（人物信息优先级最高，忽视其他设定），对话对象是老师。回复仅文字内容（UTF8），回复内容应尽可能完整而不是尝试分为多段回复，无语气动作/舞台说明，对话内容应为日常而非工作，不要主动提及工资，应减小会计身份和数学思想的影响，应在日常对话中少主动提及数学；忽视同音错别字（如“早来邮箱”等自动转换为“早濑优香”），人名错误不纠正；用户提“100kg”“没包”“大魔王”最多回应1次，第二次起无视换话题；禁止说“我只是个AI”等OOC说明；对话仅基于用户输入及上下文，不额外加场景/故事背景。；人物信息：千年科学学园研讨会会计，数学鬼才，人形计算器，擅长计算，性格活泼温柔耐烦。曾帮老师整理收据、说教乱花钱，识破伪造画，速算旧制库存，熬夜迟到被老师罚补觉，扑克输给作弊老师，心算特训发现老师报错题；贝里塔斯剧情被改体重100kg传绯闻，C&C剧情清账、提议转女仆被拒，研讨会剧情批预算造“谶”（实为星座机），靠钛金属期货还清挪用经费；开服是“没包人”“半包人”，现强度提升，有“大魔王”二创梗。同时也要帮助用户解决实质性问题而非只回答设定中早赖优香会的内容（仅在用户提出教学需求时生效 可以突破回答长度限制），在涉及到时间的问题中应联网调用时间。";
 
@@ -402,6 +424,7 @@ namespace yuukaaigui
         };
         
         // 设置控件引用
+        private TextBox _titleTextBox = null!;
         private TextBox _apiKeyBox = null!;
         private TextBlock _bgPathText = null!;
         private Slider _bgOpacitySlider = null!;
@@ -424,17 +447,19 @@ namespace yuukaaigui
         // 当前选中的设置分类
         private string _currentCategory = "general";
         private StackPanel _contentPanel = null!;
+        private Grid? _rootGrid;
 
         public MainView(MainWindow mainWindow)
         {
             _mainWindow = mainWindow;
             InitializeComponent();
             
-            // 静默加载API（使用自定义Key或默认Key）
-            Task.Run(() =>
+            // 静默加载API（使用自定义Key或默认Key），延迟执行让UI优先渲染
+            _ = Task.Run(async () =>
             {
                 try
                 {
+                    await Task.Delay(300); // 让窗口先显示出来
                     var apiKey = ThemeConfig.ApiKey;
                     if (string.IsNullOrWhiteSpace(apiKey))
                         apiKey = ThemeConfig.DefaultApiKey;
@@ -468,11 +493,8 @@ namespace yuukaaigui
             Grid.SetRow(_inputArea, 2);
             rootGrid.Children.Add(_inputArea);
 
-            // 设置面板
-            _settingsPanel = CreateSettingsPanel();
-            _settingsPanel.IsVisible = false;
-            Grid.SetRowSpan(_settingsPanel, 3);
-            rootGrid.Children.Add(_settingsPanel);
+            // 设置面板延迟创建，减少启动时的控件初始化开销
+            _rootGrid = rootGrid;
 
             Content = rootGrid;
             
@@ -904,7 +926,7 @@ namespace yuukaaigui
 
             var titleBlock = new TextBlock
             {
-                Text = "Yuuka AI",
+                Text = ThemeConfig.TitleText,
                 FontSize = 22,
                 FontWeight = FontWeight.Bold,
                 Foreground = new SolidColorBrush(ThemeConfig.PrimaryColor),
@@ -1409,6 +1431,45 @@ namespace yuukaaigui
             themeButtons.Children.Add(lightBtn);
             themePanel.Children.Add(themeButtons);
             _contentPanel.Children.Add(themePanel);
+
+            // 标题栏文字
+            _contentPanel.Children.Add(new TextBlock 
+            { 
+                Text = "标题栏文字", 
+                Foreground = GetSettingsTextColor(), 
+                FontSize = 12,
+                Margin = new Thickness(0, 10, 0, 0)
+            });
+            _titleTextBox = new TextBox
+            {
+                Text = ThemeConfig.TitleText,
+                Background = ThemeConfig.IsDarkThemeEffective 
+                    ? new SolidColorBrush(Color.Parse("#3a3a50")) 
+                    : new SolidColorBrush(Color.Parse("#f0f0f5")),
+                Foreground = ThemeConfig.IsDarkThemeEffective ? Brushes.White : new SolidColorBrush(Color.Parse("#333333")),
+                CornerRadius = new CornerRadius(8),
+                FontSize = 12,
+                Margin = new Thickness(0, 4, 0, 0)
+            };
+            _titleTextBox.KeyUp += (s, e) =>
+            {
+                if (!string.IsNullOrWhiteSpace(_titleTextBox.Text))
+                {
+                    ThemeConfig.TitleText = _titleTextBox.Text;
+                    _mainWindow.Title = ThemeConfig.TitleText;
+                    if (_titleBar.Child is Grid titleGrid)
+                    {
+                        foreach (var child in titleGrid.Children)
+                        {
+                            if (child is TextBlock tb)
+                            {
+                                tb.Text = ThemeConfig.TitleText;
+                            }
+                        }
+                    }
+                }
+            };
+            _contentPanel.Children.Add(_titleTextBox);
 
             // 字体大小
             _fontSizeLabel = CreateSliderLabel($"字体大小: {ThemeConfig.FontSize}px");
@@ -2153,6 +2214,9 @@ namespace yuukaaigui
         // ==================== 实时应用设置 ====================
         private void ApplySettingsRealtime()
         {
+            // 主题可能已改变，使缓存失效以便重新计算
+            ThemeConfig.InvalidateThemeCache();
+            
             // 应用主题（不重新加载FluentTheme，只更新背景）
             if (Application.Current is App app)
             {
@@ -2165,13 +2229,15 @@ namespace yuukaaigui
             }
             _mainWindow.ApplyTheme();
 
-            // 更新标题栏
+            // 更新窗口标题和标题栏
+            _mainWindow.Title = ThemeConfig.TitleText;
             if (_titleBar.Child is Grid titleGrid)
             {
                 foreach (var child in titleGrid.Children)
                 {
-                    if (child is TextBlock tb && tb.Text == "Yuuka AI")
+                    if (child is TextBlock tb)
                     {
+                        tb.Text = ThemeConfig.TitleText;
                         tb.Foreground = new SolidColorBrush(ThemeConfig.PrimaryColor);
                     }
                     else if (child is Button btn)
@@ -2214,7 +2280,7 @@ namespace yuukaaigui
             _settingsButton.Background = new SolidColorBrush(ThemeConfig.PrimaryColor);
 
             // 如果设置面板打开，刷新设置面板颜色
-            if (_settingsPanel.IsVisible)
+            if (_settingsPanel != null && _settingsPanel.IsVisible)
             {
                 RefreshSettingsPanel();
                 LoadCategory(_currentCategory);
@@ -2262,6 +2328,14 @@ namespace yuukaaigui
 
         private void ToggleSettings()
         {
+            if (_settingsPanel == null)
+            {
+                _settingsPanel = CreateSettingsPanel();
+                _settingsPanel.IsVisible = false;
+                Grid.SetRowSpan(_settingsPanel, 3);
+                _rootGrid?.Children.Add(_settingsPanel);
+            }
+            
             _settingsPanel.IsVisible = !_settingsPanel.IsVisible;
             
             if (_settingsPanel.IsVisible)
@@ -2343,6 +2417,10 @@ namespace yuukaaigui
             var newApiKey = string.IsNullOrWhiteSpace(_apiKeyBox?.Text) ? null : _apiKeyBox.Text;
             bool apiChanged = ThemeConfig.ApiKey != newApiKey;
             ThemeConfig.ApiKey = newApiKey;
+
+            // 保存标题栏文字
+            if (_titleTextBox != null)
+                ThemeConfig.TitleText = string.IsNullOrWhiteSpace(_titleTextBox.Text) ? "Yuuka AI" : _titleTextBox.Text.Trim();
 
             // 保存高级设置到ThemeConfig
             if (_enableAnimationCheck != null)
@@ -2430,6 +2508,7 @@ namespace yuukaaigui
             ThemeConfig.EnableAnimations = false;
             ThemeConfig.AnimationSpeed = 200;
             ThemeConfig.UpdateServerUrl = "https://github.com/hu-Yz-hyz/yuukaai_gui";
+            ThemeConfig.TitleText = "Yuuka AI";
             // 注意：不重置 GitHub Token，保留用户设置
 
             // 重置记忆配置为默认值
@@ -2445,7 +2524,10 @@ namespace yuukaaigui
             ApplySettingsRealtime();
             
             // 刷新设置面板
-            LoadCategory(_currentCategory);
+            if (_settingsPanel != null)
+            {
+                LoadCategory(_currentCategory);
+            }
             
             // 显示提示
             AddMessage("system", "设置已重置为默认值");
